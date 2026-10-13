@@ -1,5 +1,5 @@
 #include "Classifier.h"
-#include <avr/pgmspace.h>
+#include <Arduino.h>
 #include <math.h>
 #include "model_data.h"
 

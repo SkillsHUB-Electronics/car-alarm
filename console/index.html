@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Car Alarm Console</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d6fe0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
   :root { --bg:#f4f6f9; --side:#fff; --card:#fff; --text:#16181d; --muted:#667085; --line:#dde2e9; --accent:#1d6fe0; --ok:#1a9a3a; --warn:#c98200; --bad:#d62020; --soft:#eef2f7; }
   :root[data-theme=dark] { --bg:#0b1220; --side:#0e1627; --card:#111c30; --text:#e8ebf0; --muted:#8fa0b8; --line:#22304a; --accent:#2f81f7; --ok:#3ec65c; --warn:#f0b429; --bad:#ff6464; --soft:#172540; }
@@ -88,16 +92,17 @@
 </aside>
 <div>
 <header>
-  <div><h1>Car Alarm Interface Console</h1><div class="small muted">Test, calibration, learning and settings over USB (Web Serial, 9600 baud). Mirrors the Android app menus.</div></div>
+  <div><h1>Car Alarm Interface Console</h1><div class="small muted">Test, calibration, learning and settings over USB (Web Serial, 9600 baud) or BLE (Web Bluetooth, FFE0/FFE1). Mirrors the Android app menus.</div></div>
   <div class="bar">
     <button id="btnTheme" title="Theme">◐ Theme</button>
     <span class="badge"><span id="connDot" class="dot"></span><span id="connText">Not connected</span></span>
     <span class="badge small" id="fwBadge" hidden></span>
-    <span class="badge small">9600 baud</span>
-    <button id="btnConnect" class="primary">Connect</button>
+    
+    <button id="btnConnect" class="primary">Connect USB</button>
+    <button id="btnBle" class="primary">Connect BLE</button>
   </div>
 </header>
-<div id="unsupported" class="notice" hidden>This browser does not support <b>Web Serial</b>. Open the page in desktop <b>Chrome</b> or <b>Edge</b> (over <code>https</code> or <code>http://localhost</code>).</div>
+<div id="unsupported" class="notice" hidden>This browser supports neither <b>Web Bluetooth</b> nor <b>Web Serial</b>. On iPhone/iPad, Safari cannot talk to Bluetooth devices: install the free <b>Bluefy</b> browser from the App Store and open this page in it (BLE only). On a computer use Open the page in desktop <b>Chrome</b> or <b>Edge</b> (over <code>https</code> or <code>http://localhost</code>).</div>
 
 <main>
 <!-- ============ DASHBOARD ============ -->
@@ -317,6 +322,14 @@ function eventLine(text) {
 
 // ---------------- serial ----------------
 let port = null, reader = null, writer = null, connected = false;
+let bleDev = null, bleChar = null, bleBuf = '';
+const BLE_SERVICE = 0xffe0, BLE_CHAR = 0xffe1;  // HM-10 style transparent UART (same default as the Android app)
+function feedText(text) {
+  bleBuf += text;
+  let i;
+  while ((i = bleBuf.indexOf('\n')) >= 0) { const line = bleBuf.slice(0, i).replace(/\r$/, ''); bleBuf = bleBuf.slice(i + 1); if (line) onLine(line); }
+  if (bleBuf.length > 400) bleBuf = '';
+}
 const enc = new TextEncoder();
 let pending = null;      // {match, resolve, timer}
 let queue = Promise.resolve();
@@ -325,7 +338,10 @@ function setConn(on, text) {
   connected = on;
   $('connDot').className = 'dot ' + (on ? 'ok' : '');
   $('connText').textContent = text;
-  $('btnConnect').textContent = on ? 'Putuskan' : 'Hubungkan';
+  $('btnConnect').textContent = on ? 'Putuskan' : 'Connect USB';
+  $('btnBle').textContent = on ? 'Putuskan' : 'Connect BLE';
+  $('btnConnect').hidden = (on && !!bleChar) || !('serial' in navigator);
+  $('btnBle').hidden = (on && !bleChar) || !navigator.bluetooth;
   refreshButtons();
 }
 
@@ -344,8 +360,30 @@ async function openPort() {
   logLine('sys', 'Port open. A UNO usually resets when the port opens; wait ±3 s.');
   setTimeout(() => { rpc('PING', 'RSP,VER').then(onVer).catch(() => logLine('err', 'No reply to PING (car_alarm firmware v2.1?)')); }, 3500);
 }
+async function connectBle() {
+  if (connected) return disconnect();
+  try {
+    bleDev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [BLE_SERVICE] });
+    bleDev.addEventListener('gattserverdisconnected', () => { if (connected && bleChar) { disconnect(); logLine('err', 'BLE connection lost.'); } });
+    const server = await bleDev.gatt.connect();
+    const svc = await server.getPrimaryService(BLE_SERVICE);
+    bleChar = await svc.getCharacteristic(BLE_CHAR);
+    bleBuf = '';
+    const dec = new TextDecoder();
+    bleChar.addEventListener('characteristicvaluechanged', (ev) => feedText(dec.decode(ev.target.value, { stream: true })));
+    await bleChar.startNotifications();
+    setConn(true, 'BLE: ' + (bleDev.name || 'device'));
+    logLine('sys', 'BLE connected (FFE0/FFE1).');
+    setTimeout(() => { rpc('PING', 'RSP,VER').then(onVer).catch(() => logLine('err', 'No reply to PING (car_alarm firmware v2.1? BLE module wired to D10/D11?)')); }, 500);
+  } catch (e) {
+    logLine('err', 'BLE failed: ' + e.message);
+    try { bleDev && bleDev.gatt.connected && bleDev.gatt.disconnect(); } catch (x) {}
+    bleDev = bleChar = null;
+  }
+}
 async function disconnect() {
   const p = port;
+  if (connected && bleChar) { try { await bleWrite('DBG,0\n'); } catch (e) {} }
   if (connected && writer) { try { await writer.write(enc.encode('DBG,0\n')); } catch (e) {} }
   connected = false;
   clearInterval(ioKeep); ioKeep = null; ioOn = false; recording = false;
@@ -353,6 +391,8 @@ async function disconnect() {
   try { reader && await reader.cancel(); } catch (e) {}
   try { writer && writer.releaseLock(); } catch (e) {}
   try { p && await p.close(); } catch (e) {}
+  try { bleDev && bleDev.gatt.connected && bleDev.gatt.disconnect(); } catch (e) {}
+  bleDev = bleChar = null;
   reader = writer = port = null;
   setConn(false, 'Not connected');
   $('fwBadge').hidden = true;
@@ -376,10 +416,18 @@ async function readLoop() {
   }
   if (connected) { await disconnect(); logLine('err', 'Connection lost.'); }
 }
+async function bleWrite(str) {
+  const bytes = enc.encode(str);
+  for (let i = 0; i < bytes.length; i += 20) {  // 20-byte chunks fit the default ATT MTU
+    const chunk = bytes.slice(i, i + 20);
+    if (bleChar.writeValueWithoutResponse) await bleChar.writeValueWithoutResponse(chunk);
+    else await bleChar.writeValue(chunk);
+  }
+}
 async function sendLine(text) {
-  if (!writer) throw new Error('Not connected');
+  if (!writer && !bleChar) throw new Error('Not connected');
   logLine('tx', '> ' + text);
-  await writer.write(enc.encode(text + '\n'));
+  if (bleChar) await bleWrite(text + '\n'); else await writer.write(enc.encode(text + '\n'));
 }
 // Sends a command and waits for a reply line starting with `prefix` (or ERR,<cmd>). One at a time.
 function rpc(cmd, prefix, timeoutMs = 2500) {
@@ -833,8 +881,12 @@ $('rawSend').onclick = () => { const v = $('rawCmd').value.trim(); if (v) { send
 $('rawCmd').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('rawSend').click(); });
 $('logClear').onclick = () => { $('log').textContent = ''; };
 $('btnConnect').onclick = connect;
+$('btnBle').onclick = connectBle;
 
-if (!('serial' in navigator)) { $('unsupported').hidden = false; $('btnConnect').disabled = true; }
+if (!('serial' in navigator)) $('btnConnect').hidden = true;
+if (!navigator.bluetooth) $('btnBle').hidden = true;
+if (!('serial' in navigator) && !navigator.bluetooth) $('unsupported').hidden = false;
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 renderCal(); renderDataset(); refreshButtons(); setScale(); renderStatus(); drawAll(); initBuild();
 </script>
 </body>
