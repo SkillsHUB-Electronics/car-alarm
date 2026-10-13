@@ -6,6 +6,7 @@
 Settings settings;
 Calib calib;
 HwConfig hw;
+PowerCal pcal;
 
 namespace {
 constexpr uint16_t MAGIC = 0xCA62;
@@ -24,6 +25,27 @@ struct HwStored {
   HwConfig h;
   uint8_t sum;
 };
+
+constexpr uint16_t PCAL_MAGIC = 0xCA65;
+
+struct PcalStored {
+  uint16_t magic;
+  PowerCal p;
+  uint8_t sum;
+};
+
+uint8_t pcalChecksum(const PcalStored &st) {
+  const uint8_t *p = reinterpret_cast<const uint8_t *>(&st);
+  uint8_t sum = 0x3C;
+  for (size_t i = 0; i < offsetof(PcalStored, sum); i++) sum = (uint8_t)(sum * 31 + p[i]);
+  return sum;
+}
+
+void pcalDefaults() {
+  pcal.vGain = 1000;
+  pcal.iGain = 1000;
+  pcal.iOffsetMa = 0;
+}
 
 uint8_t checksum(const Stored &st) {
   const uint8_t *p = reinterpret_cast<const uint8_t *>(&st);
@@ -58,6 +80,7 @@ void setDefaults() {
   calib.gain = 1.0f;
   calib.offset = 0.0f;
   hwDefaults();
+  pcalDefaults();
 }
 
 void save() {
@@ -99,6 +122,24 @@ void hwReset() {
   hwSave();
 }
 
+bool pcalValid(const PowerCal &p) {
+  return p.vGain >= 500 && p.vGain <= 2000 && p.iGain >= 500 && p.iGain <= 2000 && p.iOffsetMa >= -500 && p.iOffsetMa <= 500;
+}
+
+void pcalSave() {
+  PcalStored st;
+  memset(&st, 0, sizeof(st));
+  st.magic = PCAL_MAGIC;
+  st.p = pcal;
+  st.sum = pcalChecksum(st);
+  EEPROM.put(sizeof(Stored) + sizeof(HwStored), st);  // after the hardware block
+}
+
+void pcalReset() {
+  pcalDefaults();
+  pcalSave();
+}
+
 void settingsBegin() {
   setDefaults();
   Stored st;
@@ -110,6 +151,9 @@ void settingsBegin() {
   HwStored hs;
   EEPROM.get(sizeof(Stored), hs);
   if (hs.magic == HW_MAGIC && hs.sum == hwChecksum(hs) && hwValid(hs.h)) hw = hs.h;
+  PcalStored ps;
+  EEPROM.get(sizeof(Stored) + sizeof(HwStored), ps);
+  if (ps.magic == PCAL_MAGIC && ps.sum == pcalChecksum(ps) && pcalValid(ps.p)) pcal = ps.p;
 }
 
 void settingsSave() { save(); }
