@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Car Alarm</string>
+
+    <string name="btn_pick">Select device</string>
+    <string name="btn_connect">Connect</string>
+    <string name="btn_disconnect">Disconnect</string>
+
+    <string name="device_none">Device: none selected</string>
+    <string name="device_fmt">Device: %1$s</string>
+    <string name="distance_none">Distance: --</string>
+    <string name="distance_fmt">Distance: %1$d cm</string>
+    <string name="log_title">Event history</string>
+    <string name="menu_io">IO test</string>
+    <string name="menu_cal">Calibration</string>
+    <string name="menu_learn">Learning</string>
+    <string name="menu_settings">Settings</string>
+    <string name="imu_none">IMU: --</string>
+    <string name="imu_fmt">IMU  X %1$.2f  Y %2$.2f  Z %3$.2f g\n|a| %4$.2f g (%5$s)   peak %6$.2f g</string>
+    <string name="imu_still">still</string>
+    <string name="imu_moving">moving</string>
+    <string name="imu_shock">shock</string>
+    <string name="drive_fmt">Driving state: %1$s (%2$d%%)</string>
+
+    <string name="state_disconnected">DISCONNECTED</string>
+    <string name="state_connecting">CONNECTING…</string>
+    <string name="state_ok">SAFE</string>
+    <string name="state_warning">WARNING: CLOSE DISTANCE</string>
+    <string name="state_danger">DANGER: TOO CLOSE</string>
+    <string name="state_shock">IMPACT!</string>
+    <string name="state_brake">HARD BRAKING!</string>
+
+    <string name="channel_status">Connection status</string>
+    <string name="channel_alarm">Vehicle alarm</string>
+    <string name="notif_connected">Connected to %1$s</string>
+    <string name="notif_connecting">Connecting to %1$s…</string>
+    <string name="notif_alarm_dist">Too close: %1$d cm</string>
+    <string name="notif_alarm_shock">Impact detected</string>
+    <string name="notif_alarm_brake">Hard braking detected</string>
+    <string name="notif_alarm_title">Car Alarm warning</string>
+
+    <string name="toast_bt_off">Turn on Bluetooth first</string>
+    <string name="toast_no_permission">Bluetooth permission is required</string>
+    <string name="toast_pick_first">Select a device (HC-05) first</string>
+    <string name="toast_location_off">Turn on Location in the phone settings so Bluetooth scanning works</string>
+    <string name="dialog_scan_title">Scanning for BLE devices… pick HC-05</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <string name="log_connected">Connected to %1$s</string>
+    <string name="log_disconnected">Connection lost, retrying…</string>
+    <string name="log_stopped">Connection stopped</string>
+    <string name="log_no_permission">Bluetooth permission denied</string>
+    <string name="log_no_uart">UART characteristic not found on the device</string>
+    <string name="log_uart">UART characteristic: %1$s</string>
+    <string name="log_dist_ok">Distance safe again</string>
+    <string name="log_dist_warn">Warning: distance %1$d cm</string>
+    <string name="log_dist_alarm">DANGER: distance %1$d cm</string>
+    <string name="log_shock">Impact (%1$s g)</string>
+    <string name="log_brake">Hard braking (%1$s g)</string>
+    <string name="log_test">Test message received</string>
+</resources>

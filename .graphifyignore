@@ -1,0 +1,6 @@
+app/**/build/
+app/.gradle/
+app/local.properties
+*.apk
+*.hex
+*.elf

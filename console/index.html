@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Car Alarm Console</title>
+<style>
+  :root { --bg:#f4f6f9; --side:#fff; --card:#fff; --text:#16181d; --muted:#667085; --line:#dde2e9; --accent:#1d6fe0; --ok:#1a9a3a; --warn:#c98200; --bad:#d62020; --soft:#eef2f7; }
+  :root[data-theme=dark] { --bg:#0b1220; --side:#0e1627; --card:#111c30; --text:#e8ebf0; --muted:#8fa0b8; --line:#22304a; --accent:#2f81f7; --ok:#3ec65c; --warn:#f0b429; --bad:#ff6464; --soft:#172540; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .app { display:grid; grid-template-columns:200px 1fr; min-height:100vh; }
+  aside { background:var(--side); border-right:1px solid var(--line); padding:12px; position:sticky; top:0; height:100vh; }
+  aside .logo { font-weight:700; font-size:15px; padding:6px 8px 14px; }
+  aside button { display:flex; gap:10px; align-items:center; width:100%; text-align:left; border:0; background:transparent; padding:10px 12px; margin-bottom:4px; border-radius:8px; color:var(--text); }
+  aside button.active { background:var(--accent); color:#fff; font-weight:600; }
+  aside button:hover:not(.active) { background:var(--soft); border:0; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:12px 20px; background:var(--side); border-bottom:1px solid var(--line); }
+  h1 { font-size:17px; margin:0; } h2 { font-size:13px; margin:0 0 12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  h3 { font-size:14px; margin:14px 0 6px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  main { padding:16px; display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); align-items:start; }
+  .tab { display:none; } .tab.active { display:contents; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .wide { grid-column:1/-1; }
+  button,select,input,textarea { font:inherit; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px 12px; }
+  button { cursor:pointer; } button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled,input:disabled,select:disabled { opacity:.45; cursor:not-allowed; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.danger { border-color:var(--bad); color:var(--bad); }
+  button.dangerfill { background:#7d1f26; border-color:#b8323c; color:#fff; font-weight:600; }
+  input[type=text],input[type=number] { width:120px; } input.w { width:100%; }
+  .badge { display:inline-flex; gap:6px; align-items:center; padding:4px 12px; border-radius:99px; background:var(--soft); font-size:12px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); display:inline-block; }
+  .dot.ok { background:var(--ok); } .dot.bad { background:var(--bad); } .dot.warn { background:var(--warn); }
+  .row { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .row > label { min-width:130px; color:var(--muted); }
+  .big { font-size:48px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+  .unit { font-size:16px; color:var(--muted); font-weight:400; }
+  .muted { color:var(--muted); } .small { font-size:12px; }
+  .pill { padding:3px 12px; border-radius:99px; font-weight:700; font-size:13px; background:var(--soft); }
+  .pill.ok { color:var(--ok); } .pill.warn { color:var(--warn); } .pill.bad { color:var(--bad); }
+  .status { font-size:30px; font-weight:800; letter-spacing:.04em; }
+  .status.ok { color:var(--ok); } .status.warn { color:var(--warn); } .status.bad { color:var(--bad); }
+  .led { width:22px; height:22px; border-radius:50%; border:2px solid var(--line); background:var(--soft); flex:none; }
+  .led.on.r { background:#ff3b3b; border-color:#ff3b3b; box-shadow:0 0 10px #ff3b3b; }
+  .led.on.g { background:#28d24a; border-color:#28d24a; box-shadow:0 0 10px #28d24a; }
+  .led.on.y { background:#ffd21f; border-color:#ffd21f; box-shadow:0 0 10px #ffd21f; }
+  .led.on.b { background:var(--accent); border-color:var(--accent); box-shadow:0 0 10px var(--accent); }
+  table { border-collapse:collapse; width:100%; } th,td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .bargraph { height:8px; background:var(--accent); border-radius:4px; min-width:2px; }
+  canvas { width:100%; height:90px; display:block; background:var(--soft); border-radius:8px; }
+  .log { height:220px; overflow:auto; background:var(--soft); border-radius:8px; padding:8px; font:12px/1.5 ui-monospace,Consolas,monospace; white-space:pre-wrap; }
+  .log.tall { height:60vh; }
+  .log .tx { color:var(--accent); } .log .err { color:var(--bad); } .log .sys { color:var(--muted); }
+  .notice { background:var(--soft); border-left:3px solid var(--warn); padding:10px 14px; border-radius:6px; margin:16px; }
+  .conf td,.conf th { padding:2px 4px; font-size:11px; text-align:center; } .conf td.hit { font-weight:700; color:var(--ok); } .conf td.miss { color:var(--bad); font-weight:700; }
+  /* distance scale */
+  .scale { position:relative; height:10px; border-radius:5px; margin:14px 0 4px; background:linear-gradient(90deg,var(--bad) 0%,var(--warn) 18%,var(--ok) 28%,var(--ok) 100%); }
+  .scale i { position:absolute; top:-5px; width:3px; height:20px; background:var(--text); border-radius:2px; transform:translateX(-1px); transition:left .2s; }
+  .scale b { position:absolute; top:-3px; width:1px; height:16px; background:var(--muted); }
+  .scalelab { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+  .axis { display:grid; grid-template-columns:18px 1fr 56px; gap:8px; align-items:center; margin:6px 0; }
+  .axbar { height:10px; background:var(--soft); border-radius:5px; position:relative; overflow:hidden; }
+  .axbar span { position:absolute; top:0; bottom:0; background:var(--accent); border-radius:5px; }
+  .axbar::after { content:""; position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--muted); }
+  .conf1 { height:10px; background:var(--soft); border-radius:5px; overflow:hidden; margin-top:8px; } .conf1 span { display:block; height:100%; background:var(--accent); width:0; transition:width .3s; }
+  .tag { font-size:11px; padding:1px 8px; border-radius:99px; border:1px solid var(--warn); color:var(--warn); }
+  .switch { display:inline-flex; gap:8px; align-items:center; cursor:pointer; color:var(--text); min-width:auto !important; }
+  .switch input { width:auto; accent-color:var(--accent); }
+  @media (max-width:760px) { .app { grid-template-columns:1fr; } aside { position:static; height:auto; display:flex; flex-wrap:wrap; gap:4px; } aside .logo { width:100%; } aside button { width:auto; } }
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="logo">🚗 Car Alarm</div>
+  <nav id="tabs">
+    <button data-tab="dash" class="active">▦ Dashboard</button>
+    <button data-tab="io">⚡ Test IO</button>
+    <button data-tab="learn">🧠 Learning</button>
+    <button data-tab="cal">📏 Calibration</button>
+    <button data-tab="mon">⌨ Serial Monitor</button>
+    <button data-tab="set">⚙ Settings</button>
+    <button data-tab="about">ⓘ About</button>
+  </nav>
+</aside>
+<div>
+<header>
+  <div><h1>Car Alarm Interface Console</h1><div class="small muted">Test, calibration, learning and settings over USB (Web Serial, 9600 baud). Mirrors the Android app menus.</div></div>
+  <div class="bar">
+    <button id="btnTheme" title="Theme">◐ Theme</button>
+    <span class="badge"><span id="connDot" class="dot"></span><span id="connText">Not connected</span></span>
+    <span class="badge small" id="fwBadge" hidden></span>
+    <span class="badge small">9600 baud</span>
+    <button id="btnConnect" class="primary">Connect</button>
+  </div>
+</header>
+<div id="unsupported" class="notice" hidden>This browser does not support <b>Web Serial</b>. Open the page in desktop <b>Chrome</b> or <b>Edge</b> (over <code>https</code> or <code>http://localhost</code>).</div>
+
+<main>
+<!-- ============ DASHBOARD ============ -->
+<div class="tab active" id="tab-dash">
+  <section class="card wide">
+    <h2>Compile &amp; Upload <span class="muted" style="text-transform:none">(no Arduino IDE needed)</span></h2>
+    <div id="buildOffline" class="small muted" hidden>Compile &amp; upload needs the local helper server (arduino-cli): run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
+    <div id="buildUi">
+      <div class="row"><label style="min-width:auto">Sketch</label><select id="sketchSel" style="min-width:260px"></select><label style="min-width:auto">Port</label><select id="portSel" style="min-width:200px"></select><button id="btnPorts">⟳</button>
+        <button id="btnCompile">Compile</button><button id="btnUpload" class="primary">Compile &amp; Upload</button><span id="buildStat" class="small muted"></span></div>
+      <div id="buildMeta" class="small muted"></div>
+      <div class="log" id="buildLog" hidden style="height:160px;margin-top:8px"></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Status</h2>
+    <div class="status" id="dStatus">-</div>
+    <div class="small muted" id="dStatusNote">Connect the device to see its status.</div>
+    <div class="row" style="margin-top:12px"><span id="dMotion" class="pill ok">No shock</span><span id="dMotionVal" class="muted"></span></div>
+    <h3>AI confidence (edge)</h3>
+    <div class="row" style="margin-bottom:0"><span class="big" style="font-size:26px" id="dCls">-</span><span class="muted" id="dClsPct"></span></div>
+    <div class="conf1"><span id="dClsBar"></span></div>
+    <div class="small muted" id="dClsNote" style="margin-top:6px">No model in the firmware yet (train one in the Learning tab, then flash).</div>
+  </section>
+  <section class="card">
+    <h2>Input: HC-SR04 (distance)</h2>
+    <div class="row"><span class="big" id="dDist">--</span><span class="unit">cm</span><span id="dLevel" class="pill">-</span></div>
+    <div class="scale"><b id="mDanger"></b><b id="mWarn"></b><i id="dPtr" style="left:100%"></i></div>
+    <div class="scalelab"><span>0</span><span id="lDanger">50 (danger)</span><span id="lWarn">100 (warning)</span><span>400 cm</span></div>
+    <canvas id="dSpark" width="400" height="90" style="margin-top:12px"></canvas>
+    <div class="small muted" style="margin-top:6px">“--” = no echo (timeout), not an alarm.</div>
+  </section>
+  <section class="card">
+    <h2>Input: MPU6050 (acceleration)</h2>
+    <div class="row"><span class="big" id="dG">--</span><span class="unit">g</span><span id="dGState" class="pill">-</span></div>
+    <div class="small muted">At rest ≈ 1.00 g. A shock is a deviation from 1 g above the threshold. Peak: <b id="dPeak">-</b> g <button id="dPeakReset" class="small">reset</button></div>
+    <div class="axis"><b>X</b><div class="axbar"><span id="axX"></span></div><span id="vX" class="muted">-</span></div>
+    <div class="axis"><b>Y</b><div class="axbar"><span id="axY"></span></div><span id="vY" class="muted">-</span></div>
+    <div class="axis"><b>Z</b><div class="axbar"><span id="axZ"></span></div><span id="vZ" class="muted">-</span></div>
+    <canvas id="gSpark" width="400" height="90"></canvas>
+  </section>
+  <section class="card wide">
+    <h2>Event history</h2>
+    <div class="log" id="events" style="height:150px"></div>
+  </section>
+</div>
+
+<!-- ============ TEST IO ============ -->
+<div class="tab" id="tab-io">
+  <section class="card">
+    <h2>Output (PC → Arduino)</h2>
+    <div class="row"><button id="ioToggle" class="primary">Start Test IO</button><span class="small muted">Automatic alarms are paused; it exits by itself after 30 s without commands.</span></div>
+    <div class="row"><span class="led r" id="ledR"></span><label>Red LED (D5)</label><button data-led="R" class="ioctl">Toggle</button></div>
+    <div class="row"><span class="led g" id="ledG"></span><label>Green LED (D6)</label><button data-led="G" class="ioctl">Toggle</button></div>
+    <div class="row"><span class="led y" id="ledY"></span><label>Yellow LED (D7)</label><button data-led="Y" class="ioctl">Toggle</button></div>
+    <div class="row"><span class="led b" id="ledBuz"></span><label>Buzzer (D8)</label><button id="btnBuz" class="ioctl">Toggle</button><button id="btnBeep" class="ioctl">Beep 200 ms</button></div>
+    <div class="row"><label>LCD line 1</label><input class="w" type="text" id="lcd0" maxlength="16" value="Car Alarm Test" style="flex:1"></div>
+    <div class="row"><label>LCD line 2</label><input class="w" type="text" id="lcd1" maxlength="16" value="LCD OK" style="flex:1"></div>
+    <div class="row"><button id="btnLcd" class="ioctl">Send to LCD</button><button id="btnLcdClear" class="ioctl">Clear</button></div>
+    <div class="row"><label>LCD backlight</label><label class="switch"><input type="checkbox" id="ioBl" class="ioctl" checked> on</label></div>
+    <div class="row"><label>Bluetooth TX</label><input class="w" type="text" id="btText" maxlength="24" value="BT_TEST_1" style="flex:1"><button id="btnBt" class="ioctl">Send to phone</button></div>
+    <div class="small muted">The text goes out through the BLE module; view it in the Car Alarm app or nRF Connect on the phone.</div>
+    <div class="row" style="margin-top:12px"><button id="btnAllOff" class="dangerfill ioctl">⏻ Turn all outputs off</button></div>
+  </section>
+  <section class="card">
+    <h2>Input (Arduino → PC)</h2>
+    <div class="row"><button id="btnRead" class="ioctl">Read sensors</button><label class="switch"><input type="checkbox" id="autoRead"> automatic every 1 s</label></div>
+    <table>
+      <tr><th>Raw distance (uncalibrated)</th><td id="rDist">-</td></tr>
+      <tr><th>Acceleration X / Y / Z</th><td id="rAcc">-</td></tr>
+      <tr><th>MPU6050 (0x68)</th><td id="rMpu">-</td></tr>
+      <tr><th>LCD I2C</th><td id="rLcd">-</td></tr>
+    </table>
+    <div class="small muted" style="margin-top:8px">Quick check: LED/buzzer/LCD respond, the distance changes when a hand approaches, Z ≈ ±1000 mg at rest.</div>
+  </section>
+</div>
+
+<!-- ============ CALIBRATION ============ -->
+<div class="tab" id="tab-cal">
+  <section class="card">
+    <h2>HC-SR04 measurement points</h2>
+    <p class="small muted">Place a flat obstacle at a known distance (measure with a ruler/tape from the sensor face), enter the true distance and press Measure. The device averages 10 raw readings. Take at least 4 spread-out points (e.g. 20, 50, 100, 200 cm).</p>
+    <div class="row"><label>True distance</label><input type="number" id="calTrue" step="0.1" min="2" max="400" value="50"><span class="muted">cm</span><button id="calMeasure" class="primary">Measure</button></div>
+    <table id="calTable"><thead><tr><th>#</th><th>True (cm)</th><th>Raw (cm)</th><th>Error before</th><th>Error after</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="row" style="margin-top:8px"><button id="calClear" class="danger">Clear points</button></div>
+  </section>
+  <section class="card">
+    <h2>Compute &amp; apply</h2>
+    <div class="row"><label>Method</label>
+      <select id="calMode"><option value="reg">Linear regression (gain + offset)</option><option value="off">Offset only (mean difference)</option></select></div>
+    <table>
+      <tr><th>Gain</th><td id="calGain">-</td></tr><tr><th>Offset (cm)</th><td id="calOff">-</td></tr>
+      <tr><th>RMSE before → after</th><td id="calRmse">-</td></tr><tr><th>Max error after</th><td id="calMax">-</td></tr>
+    </table>
+    <div class="row" style="margin-top:10px"><button id="calApply" class="primary">Apply to device (EEPROM)</button><button id="calReset">Reset (gain 1, offset 0)</button></div>
+    <div class="row"><label>Stored on device</label><span id="calStored" class="muted">-</span><button id="calRefresh">Read</button></div>
+    <div class="small muted" id="calMsg"></div>
+  </section>
+  <section class="card wide">
+    <h2>MPU6050 calibration</h2>
+    <p class="small muted">The MPU6050 offset is calibrated automatically for 1 s at power-up: power on or reset the UNO while the unit is <b>stationary and level</b>. Watch X/Y/Z on the Dashboard (Z ≈ 1.00 g, X and Y ≈ 0). The car's forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in the Settings tab.</p>
+  </section>
+</div>
+
+<!-- ============ LEARNING ============ -->
+<div class="tab" id="tab-learn">
+  <section class="card">
+    <h2>1. Record data (USB)</h2>
+    <p class="small muted">Mount the unit in the car (MPU +Y facing forward), pick a class, press Record, perform the manoeuvre, then Stop. The device sends 8 features per second. Data can also be <b>imported</b> from a CSV exported by the Android app. Recording while driving is unsafe: have someone else operate it, or use the app on the phone.</p>
+    <div class="row"><label>Class</label><select id="lrnClass"></select></div>
+    <div class="row"><label>Session</label><input type="text" id="lrnSession" class="w" style="flex:1" value=""></div>
+    <div class="row"><button id="lrnRec" class="primary">Record</button><span id="lrnLive" class="small muted"></span></div>
+  </section>
+  <section class="card">
+    <h2>Dataset</h2>
+    <div class="row"><button id="lrnImport">Import CSV…</button><input type="file" id="lrnFile" accept=".csv,text/csv,text/plain" multiple hidden><button id="lrnExport">Export CSV</button><button id="lrnClear" class="danger">Delete all</button></div>
+    <div class="small muted" id="lrnTotals"></div>
+    <table id="lrnTable"><thead><tr><th>Class</th><th>Windows</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+  <section class="card">
+    <h2>2. Train model</h2>
+    <div class="row"><label>Hidden neurons</label><select id="trHidden"><option>8</option><option selected>12</option><option>16</option><option>24</option><option>32</option></select><span id="trSize" class="small muted"></span></div>
+    <div class="row"><label>Epoch</label><input type="number" id="trEpochs" value="300" min="20" max="3000" step="10"></div>
+    <div class="row"><button id="trGo" class="primary">Train</button><span id="trProg" class="small muted"></span></div>
+    <div id="trResult" class="small"></div>
+  </section>
+  <section class="card">
+    <h2>3. Generate &amp; put into the firmware</h2>
+    <p class="small muted">Writes <code>firmware/car_alarm/model_data.h</code> on this PC (through the local helper), then compiles and uploads. The serial port is closed temporarily. Without the helper, download <code>model_data.h</code> and put it into <code>firmware/car_alarm/</code> yourself.</p>
+    <div class="row"><label>Port</label><select id="lrnPort" style="min-width:200px"></select><button id="lrnPorts">⟳</button></div>
+    <div class="row"><button id="mdlDownload" disabled>Download model_data.h</button><button id="mdlWrite" disabled>Write model_data.h</button><button id="mdlFlash" class="primary" disabled>Write + Compile + Upload</button></div>
+    <div class="row"><button id="mdlRemove" class="danger">Remove model from firmware</button></div>
+    <div class="small muted" id="mdlMsg"></div>
+  </section>
+  <section class="card wide"><h2>Confusion matrix (validation)</h2><div id="trConf" class="small muted">No results yet.</div></section>
+</div>
+
+<!-- ============ SERIAL MONITOR ============ -->
+<div class="tab" id="tab-mon">
+  <section class="card wide">
+    <h2>Serial Monitor (9600 baud)</h2>
+    <div class="log tall" id="log"></div>
+    <div class="row" style="margin-top:8px"><input type="text" id="rawCmd" class="w" style="flex:1" placeholder="Command, e.g. PING, CFG,GET, HW,GET, I2C,SCAN"><button id="rawSend">Send</button><button id="logClear">Clear</button></div>
+  </section>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div class="tab" id="tab-set">
+  <section class="card">
+    <h2>Alarm (EEPROM)</h2>
+    <div class="row"><label>Warning ≤ (cm)</label><input type="number" id="sWarn" min="20" max="300"></div>
+    <div class="row"><label>Danger ≤ (cm)</label><input type="number" id="sDanger" min="10" max="290"></div>
+    <div class="row"><label>Shock threshold (g)</label><input type="number" id="sShock" min="0.1" max="3" step="0.05"></div>
+    <div class="row"><label>Brake threshold (g)</label><input type="number" id="sBrake" min="0.05" max="2" step="0.05"></div>
+    <div class="row"><label>Min. braking time (ms)</label><input type="number" id="sBrakeMs" min="50" max="2000" step="10"></div>
+    <div class="row"><label>Alarm hold (s)</label><input type="number" id="sHold" min="1" max="60"></div>
+    <div class="row"><label>Buzzer</label><label class="switch"><input type="checkbox" id="sBuz"> enabled</label></div>
+    <div class="row"><button id="sRead">Read from device</button><button id="sSave" class="primary">Save</button><button id="sReset">Restore defaults</button></div>
+    <div class="small muted" id="sMsg">Rule: danger + 10 ≤ warning. The distance calibration is not erased by a settings reset.</div>
+  </section>
+  <section class="card">
+    <h2>Hardware (EEPROM)</h2>
+    <div class="row"><label>LCD I2C address</label><input type="text" id="hAddr" value="0x27" style="width:90px"><select id="hScanSel" style="min-width:120px"><option value="">(scan result)</option></select><button id="hScan">Scan I2C</button></div>
+    <div class="small muted" id="hScanOut" style="margin:-4px 0 10px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
+    <div class="row"><label>LCD</label><label class="switch"><input type="checkbox" id="hLcd"> enabled</label></div>
+    <div class="row"><label>LCD backlight</label><label class="switch"><input type="checkbox" id="hBl"> on</label></div>
+    <div class="row"><label>Battery charger</label><label class="switch"><input type="checkbox" id="hChg"> enabled</label><span class="tag">not active yet: stored only</span></div>
+    <div class="row"><label>INA (current sensor)</label><label class="switch"><input type="checkbox" id="hIna"> enabled</label><span class="tag">not active yet: stored only</span></div>
+    <div class="row"><button id="hRead">Read from device</button><button id="hSave" class="primary">Save</button><button id="hReset">Restore defaults</button></div>
+    <div class="small muted" id="hMsg">Address/LCD/backlight changes apply immediately; the address must be 0x08–0x77.</div>
+  </section>
+</div>
+
+<!-- ============ ABOUT ============ -->
+<div class="tab" id="tab-about">
+  <section class="card wide">
+    <h2>About</h2>
+    <p>Car Distance &amp; Shock Alarm (Arduino UNO): HC-SR04 distance, MPU6050 shock/braking, 16x2 I2C LCD, buzzer/LED, BLE to a phone.</p>
+    <p class="small muted">This console uses the firmware v2.1 line protocol. Commands: PING, CFG, CAL, IO, HW, I2C,SCAN, REC, DBG. Source of truth for the protocol: <code>firmware/README.md</code> and <code>PLAN.md</code>. This is an assistive tool, not a safety system. Source: <a href="https://github.com/SkillsHUB-Electronics/car-alarm" target="_blank" rel="noopener">github.com/SkillsHUB-Electronics/car-alarm</a>.</p>
+  </section>
+</div>
+</main>
+</div>
+</div>
+
+<script src="./ml.js"></script>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const ML = window.CarML;
+
+// ---------------- storage helpers (per-browser; always optional) ----------------
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full or blocked */ } }
+
+// ---------------- theme ----------------
+function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); }
+applyTheme(lsGet('theme', 'dark'));
+$('btnTheme').onclick = () => { const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; applyTheme(t); lsSet('theme', t); drawAll(); };
+
+// ---------------- log ----------------
+function logLine(kind, text) {
+  const el = $('log');
+  const d = document.createElement('div');
+  d.className = kind; d.textContent = text;
+  el.appendChild(d);
+  while (el.childNodes.length > 400) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+function eventLine(text) {
+  const el = $('events');
+  const d = document.createElement('div');
+  d.textContent = new Date().toLocaleTimeString() + '  ' + text;
+  el.prepend(d);
+  while (el.childNodes.length > 200) el.removeChild(el.lastChild);
+}
+
+// ---------------- serial ----------------
+let port = null, reader = null, writer = null, connected = false;
+const enc = new TextEncoder();
+let pending = null;      // {match, resolve, timer}
+let queue = Promise.resolve();
+
+function setConn(on, text) {
+  connected = on;
+  $('connDot').className = 'dot ' + (on ? 'ok' : '');
+  $('connText').textContent = text;
+  $('btnConnect').textContent = on ? 'Putuskan' : 'Hubungkan';
+  refreshButtons();
+}
+
+async function connect() {
+  if (connected) return disconnect();
+  try {
+    port = await navigator.serial.requestPort();
+    await openPort();
+  } catch (e) { logLine('err', 'Failed to open port: ' + e.message); }
+}
+async function openPort() {
+  await port.open({ baudRate: 9600 });
+  writer = port.writable.getWriter();
+  setConn(true, 'Connected (9600)');
+  readLoop();
+  logLine('sys', 'Port open. A UNO usually resets when the port opens; wait ±3 s.');
+  setTimeout(() => { rpc('PING', 'RSP,VER').then(onVer).catch(() => logLine('err', 'No reply to PING (car_alarm firmware v2.1?)')); }, 3500);
+}
+async function disconnect() {
+  const p = port;
+  if (connected && writer) { try { await writer.write(enc.encode('DBG,0\n')); } catch (e) {} }
+  connected = false;
+  clearInterval(ioKeep); ioKeep = null; ioOn = false; recording = false;
+  if (pending) { clearTimeout(pending.timer); pending = null; }
+  try { reader && await reader.cancel(); } catch (e) {}
+  try { writer && writer.releaseLock(); } catch (e) {}
+  try { p && await p.close(); } catch (e) {}
+  reader = writer = port = null;
+  setConn(false, 'Not connected');
+  $('fwBadge').hidden = true;
+}
+async function readLoop() {
+  const dec = new TextDecoder();
+  let buf = '';
+  while (port && port.readable) {
+    reader = port.readable.getReader();
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).replace(/\r$/, ''); buf = buf.slice(i + 1); if (line) onLine(line); }
+        if (buf.length > 400) buf = '';
+      }
+    } catch (e) { /* port unplugged */ } finally { try { reader.releaseLock(); } catch (e) {} }
+    break;
+  }
+  if (connected) { await disconnect(); logLine('err', 'Connection lost.'); }
+}
+async function sendLine(text) {
+  if (!writer) throw new Error('Not connected');
+  logLine('tx', '> ' + text);
+  await writer.write(enc.encode(text + '\n'));
+}
+// Sends a command and waits for a reply line starting with `prefix` (or ERR,<cmd>). One at a time.
+function rpc(cmd, prefix, timeoutMs = 2500) {
+  const run = () => new Promise((resolve, reject) => {
+    const name = cmd.split(',')[0];
+    pending = {
+      match: (l) => l.startsWith(prefix) || l.startsWith('ERR,' + name),
+      resolve: (l) => { clearTimeout(pending.timer); pending = null; l.startsWith('ERR,') ? reject(new Error(l)) : resolve(l); },
+    };
+    pending.timer = setTimeout(() => { pending = null; reject(new Error('Timeout: ' + cmd)); }, timeoutMs);
+    sendLine(cmd).catch((e) => { clearTimeout(pending.timer); pending = null; reject(e); });
+  });
+  const p = queue.then(run, run);
+  queue = p.catch(() => {});
+  return p;
+}
+
+// ---------------- incoming lines ----------------
+const hist = [], gHist = [];
+let thr = { warn: 100, danger: 50 };
+let distType = null, motionKind = null;
+function onLine(line) {
+  logLine('rx', line);
+  if (pending && pending.match(line)) pending.resolve(line);
+  const p = line.split(',');
+  switch (p[0]) {
+    case 'OK': case 'WARN': case 'ALARM':
+      if (p[1] === 'DIST') onDist(p[0], p[2] === undefined ? null : Number(p[2]));
+      else if (p[1] === 'SHOCK' || p[1] === 'BRAKE') onMotion(p[1], Number(p[2]));
+      break;
+    case 'CLS': onCls(Number(p[1]), Number(p[2])); break;
+    case 'FEAT': onFeat(p.slice(1).map(Number)); break;
+    case 'DBG': onDbg(p); break;
+  }
+}
+function renderStatus() {
+  const el = $('dStatus'), note = $('dStatusNote');
+  let cls = 'ok', t = 'SAFE', n = 'Distance safe, no shock.';
+  if (motionKind) { cls = 'bad'; t = motionKind === 'SHOCK' ? 'SHOCK' : 'HARD BRAKING'; n = 'Motion event detected (clears automatically).'; }
+  else if (distType === 'ALARM') { cls = 'bad'; t = 'DANGER'; n = 'Very close to the vehicle ahead.'; }
+  else if (distType === 'WARN') { cls = 'warn'; t = 'WARNING'; n = 'Getting close to the vehicle ahead.'; }
+  else if (distType === null) { cls = ''; t = '-'; n = 'Waiting for device data.'; }
+  el.className = 'status ' + cls; el.textContent = t; note.textContent = n;
+}
+let lastLevel = '';
+function onDist(type, cm) {
+  distType = type;
+  $('dDist').textContent = cm === null ? '--' : cm;
+  const pill = $('dLevel');
+  pill.className = 'pill ' + (type === 'OK' ? 'ok' : type === 'WARN' ? 'warn' : 'bad');
+  pill.textContent = type === 'OK' ? 'NORMAL' : type === 'WARN' ? 'WARNING' : 'DANGER';
+  $('dPtr').style.left = (cm === null ? 100 : Math.min(cm, 400) / 4) + '%';
+  if (type !== lastLevel) { lastLevel = type; eventLine('Distance: ' + pill.textContent + (cm === null ? '' : ' (' + cm + ' cm)')); }
+  hist.push(cm === null ? NaN : cm); if (hist.length > 150) hist.shift();
+  renderStatus(); drawSpark();
+}
+function onMotion(kind, g) {
+  const el = $('dMotion');
+  motionKind = kind;
+  el.className = 'pill bad'; el.textContent = kind === 'SHOCK' ? 'SHOCK' : 'HARD BRAKING';
+  $('dMotionVal').textContent = g.toFixed(1) + ' g';
+  eventLine((kind === 'SHOCK' ? 'Shock ' : 'Hard braking ') + g.toFixed(1) + ' g');
+  renderStatus();
+  clearTimeout(onMotion.t);
+  onMotion.t = setTimeout(() => { motionKind = null; el.className = 'pill ok'; el.textContent = 'No shock'; $('dMotionVal').textContent = ''; renderStatus(); }, 10000);
+}
+function onCls(id, pct) {
+  $('dCls').textContent = ML.CLASSES[id] || ('class ' + id);
+  $('dClsPct').textContent = pct + '%';
+  $('dClsBar').style.width = pct + '%';
+  $('dClsNote').textContent = 'Informational only; does not change the alarm logic.';
+}
+// DBG,status,cm,shockDev,fwd,pkShock,pkBrake,pkAccel,ax,ay,az  (ax..az in mg, firmware v2.1)
+let peakG = 0;
+function onDbg(p) {
+  if (p.length < 11) return;
+  const a = [Number(p[8]), Number(p[9]), Number(p[10])];
+  if (a.some((v) => !Number.isFinite(v))) return;
+  const g = a.map((v) => v / 1000), mag = Math.hypot(...g);
+  $('dG').textContent = mag.toFixed(2);
+  const dev = Math.abs(mag - 1);
+  const st = $('dGState');
+  st.textContent = dev < 0.15 ? 'STILL' : dev < 0.6 ? 'MOVING' : 'SHOCK';
+  st.className = 'pill ' + (dev < 0.15 ? 'ok' : dev < 0.6 ? 'warn' : 'bad');
+  if (mag > peakG) { peakG = mag; $('dPeak').textContent = peakG.toFixed(2); }
+  ['X', 'Y', 'Z'].forEach((n, i) => {
+    const v = Math.max(-2, Math.min(2, g[i])), w = Math.abs(v) / 2 * 50;
+    const s = $('ax' + n).style; s.left = (v >= 0 ? 50 : 50 - w) + '%'; s.width = w + '%';
+    $('v' + n).textContent = g[i].toFixed(2);
+  });
+  gHist.push(mag); if (gHist.length > 150) gHist.shift();
+  drawG();
+}
+$('dPeakReset').onclick = () => { peakG = 0; $('dPeak').textContent = '-'; };
+function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function plot(c, data, max) {
+  const ctx = c.getContext('2d');
+  const w = c.width = c.clientWidth * 2, h = c.height = 180;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = css('--accent'); ctx.lineWidth = 3; ctx.beginPath();
+  let pen = false;
+  data.forEach((v, i) => {
+    if (!isFinite(v)) { pen = false; return; }
+    const x = (i / 149) * w, y = h - Math.min(v, max) / max * (h - 8) - 4;
+    if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+function drawSpark() { plot($('dSpark'), hist, 400); }
+function drawG() { plot($('gSpark'), gHist, 2); }
+function drawAll() { drawSpark(); drawG(); }
+function setScale() {
+  $('mDanger').style.left = thr.danger / 4 + '%'; $('mWarn').style.left = thr.warn / 4 + '%';
+  $('lDanger').textContent = thr.danger + ' (danger)'; $('lWarn').textContent = thr.warn + ' (warning)';
+}
+function onVer(l) {
+  const p = l.split(',');
+  $('fwBadge').hidden = false; $('fwBadge').textContent = 'FW ' + p[2] + (p[3] === '1' ? ' · AI model' : ' · no model');
+  if (p[3] === '1') $('dClsNote').textContent = 'Waiting for the first classification from the device…';
+  rpc('DBG,1', 'RSP,DBG').catch(() => {});
+  readSettings(); readCalStored(); readHw();
+}
+
+// ---------------- tabs ----------------
+function refreshButtons() {
+  const on = connected;
+  const io = ioOn;
+  document.querySelectorAll('.ioctl').forEach((b) => { b.disabled = !(on && io); });
+  $('ioToggle').disabled = !on;
+  $('ioToggle').textContent = io ? 'End Test IO' : 'Start Test IO';
+  $('lrnRec').disabled = !on;
+  $('lrnRec').textContent = recording ? 'Stop' : 'Record';
+  for (const id of ['calMeasure', 'calApply', 'calReset', 'calRefresh', 'sRead', 'sSave', 'sReset', 'hRead', 'hSave', 'hReset', 'hScan']) $(id).disabled = !on;
+}
+document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  drawAll();
+}));
+
+// ---------------- Test IO ----------------
+let ioOn = false, ioKeep = null;
+const leds = { R: false, Y: false, G: false }; let buz = false;
+function paintIo() {
+  $('ledR').classList.toggle('on', leds.R); $('ledY').classList.toggle('on', leds.Y);
+  $('ledG').classList.toggle('on', leds.G); $('ledBuz').classList.toggle('on', buz);
+}
+async function ioStart() {
+  await rpc('IO,ON', 'RSP,IO,ON'); ioOn = true;
+  leds.R = leds.Y = leds.G = buz = false; paintIo();
+  $('ioBl').checked = true;
+  ioKeep = setInterval(() => { rpc('IO,LED,R,' + (leds.R ? 1 : 0), 'RSP,IO').catch(() => {}); }, 10000);  // keeps the 30 s timeout away
+  refreshButtons();
+}
+async function ioStop() {
+  clearInterval(ioKeep); ioKeep = null; ioOn = false;
+  $('autoRead').checked = false;
+  try { await rpc('IO,OFF', 'RSP,IO,OFF'); } catch (e) {}
+  leds.R = leds.Y = leds.G = buz = false; paintIo(); refreshButtons();
+}
+$('ioToggle').onclick = () => (ioOn ? ioStop() : ioStart()).catch((e) => logLine('err', e.message));
+document.querySelectorAll('[data-led]').forEach((b) => b.onclick = async () => {
+  const k = b.dataset.led; leds[k] = !leds[k]; paintIo();
+  rpc('IO,LED,' + k + ',' + (leds[k] ? 1 : 0), 'RSP,IO').catch((e) => logLine('err', e.message));
+});
+$('btnBuz').onclick = () => { buz = !buz; paintIo(); rpc('IO,BUZ,' + (buz ? 1 : 0), 'RSP,IO').catch((e) => logLine('err', e.message)); };
+$('btnBeep').onclick = async () => {
+  try { buz = true; paintIo(); await rpc('IO,BUZ,1', 'RSP,IO'); await new Promise((r) => setTimeout(r, 200)); buz = false; paintIo(); await rpc('IO,BUZ,0', 'RSP,IO'); }
+  catch (e) { logLine('err', e.message); }
+};
+$('btnLcd').onclick = () => {
+  const t = ($('lcd0').value + '|' + $('lcd1').value).replace(/,/g, ' ');
+  rpc('IO,LCD,' + t, 'RSP,IO').catch((e) => logLine('err', e.message));
+};
+$('btnLcdClear').onclick = () => { $('lcd0').value = ''; $('lcd1').value = ''; rpc('IO,LCD, | ', 'RSP,IO').catch((e) => logLine('err', e.message)); };
+$('ioBl').onchange = () => rpc('IO,BL,' + ($('ioBl').checked ? 1 : 0), 'RSP,IO').catch((e) => logLine('err', e.message));
+$('btnBt').onclick = () => rpc('IO,BT,' + $('btText').value.replace(/[\r\n]/g, ' '), 'RSP,IO').catch((e) => logLine('err', e.message));
+$('btnAllOff').onclick = async () => {
+  leds.R = leds.Y = leds.G = buz = false; paintIo();
+  try {
+    for (const k of ['R', 'Y', 'G']) await rpc('IO,LED,' + k + ',0', 'RSP,IO');
+    await rpc('IO,BUZ,0', 'RSP,IO');
+  } catch (e) { logLine('err', e.message); }
+};
+async function readIo() {
+  try {
+    const p = (await rpc('IO,READ', 'RSP,IO,READ', 4000)).split(',');
+    $('rDist').textContent = Number(p[3]) < 0 ? 'no echo' : (Number(p[3]) / 10).toFixed(1) + ' cm';
+    $('rAcc').textContent = [p[4], p[5], p[6]].map((v) => v + ' mg').join(' / ');
+    $('rMpu').textContent = p[7] === '1' ? 'OK' : 'NOT DETECTED';
+    $('rLcd').textContent = p[8] === '1' ? 'OK (ACK I2C)' : 'NOT DETECTED';
+  } catch (e) { logLine('err', e.message); }
+}
+$('btnRead').onclick = readIo;
+setInterval(() => { if (ioOn && $('autoRead').checked && connected) readIo(); }, 1000);
+
+// ---------------- Calibration ----------------
+let calPts = lsGet('calPts', []);   // [{t: true cm, r: raw cm}]
+function calFit(mode) {
+  const n = calPts.length;
+  if (n < 1) return null;
+  if (mode === 'off' || n < 2) {
+    const off = calPts.reduce((s, p) => s + (p.t - p.r), 0) / n;
+    return { gain: 1, offset: off };
+  }
+  const sx = calPts.reduce((s, p) => s + p.r, 0), sy = calPts.reduce((s, p) => s + p.t, 0);
+  const sxx = calPts.reduce((s, p) => s + p.r * p.r, 0), sxy = calPts.reduce((s, p) => s + p.r * p.t, 0);
+  const den = n * sxx - sx * sx;
+  if (Math.abs(den) < 1e-9) return null;
+  const gain = (n * sxy - sx * sy) / den;
+  return { gain, offset: (sy - gain * sx) / n };
+}
+const rmse = (e) => Math.sqrt(e.reduce((s, v) => s + v * v, 0) / e.length);
+function renderCal() {
+  const fit = calFit($('calMode').value);
+  const tb = $('calTable').querySelector('tbody'); tb.innerHTML = '';
+  calPts.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const after = fit ? (p.r * fit.gain + fit.offset - p.t) : NaN;
+    tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + p.t.toFixed(1) + '</td><td>' + p.r.toFixed(1) + '</td><td>' + (p.r - p.t).toFixed(1) + '</td><td>' + (fit ? after.toFixed(1) : '-') + '</td>';
+    const td = document.createElement('td'); const b = document.createElement('button'); b.textContent = '✕';
+    b.onclick = () => { calPts.splice(i, 1); lsSet('calPts', calPts); renderCal(); }; td.appendChild(b); tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+  if (!fit) { for (const id of ['calGain', 'calOff', 'calRmse', 'calMax']) $(id).textContent = '-'; return; }
+  const before = calPts.map((p) => p.r - p.t), after = calPts.map((p) => p.r * fit.gain + fit.offset - p.t);
+  $('calGain').textContent = fit.gain.toFixed(4); $('calOff').textContent = fit.offset.toFixed(2);
+  $('calRmse').textContent = rmse(before).toFixed(2) + ' → ' + rmse(after).toFixed(2) + ' cm';
+  $('calMax').textContent = Math.max(...after.map(Math.abs)).toFixed(2) + ' cm';
+  $('calMsg').textContent = calPts.length < 4 ? 'At least 4 spread-out points are recommended.' : '';
+}
+$('calMode').onchange = renderCal;
+$('calMeasure').onclick = async () => {
+  const t = Number($('calTrue').value);
+  if (!(t >= 2 && t <= 400)) { $('calMsg').textContent = 'The true distance must be 2–400 cm.'; return; }
+  $('calMsg').textContent = 'Measuring…';
+  try {
+    const p = (await rpc('CAL,RAW,10', 'RSP,CAL,RAW', 5000)).split(',');
+    calPts.push({ t, r: Number(p[3]) / 10 }); lsSet('calPts', calPts);
+    $('calMsg').textContent = 'Point ' + calPts.length + ': raw ' + (Number(p[3]) / 10).toFixed(1) + ' cm.'; renderCal();
+  } catch (e) { $('calMsg').textContent = 'Failed: ' + e.message; }
+};
+$('calClear').onclick = () => { calPts = []; lsSet('calPts', calPts); renderCal(); };
+$('calApply').onclick = async () => {
+  const fit = calFit($('calMode').value);
+  if (!fit) { $('calMsg').textContent = 'Not enough points.'; return; }
+  try { const r = await rpc('CAL,SET,' + fit.gain.toFixed(4) + ',' + fit.offset.toFixed(2), 'RSP,CAL,', 3000); $('calMsg').textContent = 'Saved: ' + r; readCalStored(); }
+  catch (e) { $('calMsg').textContent = 'Rejected by the device: ' + e.message + ' (gain 0.5–2, offset ±50)'; }
+};
+$('calReset').onclick = async () => { try { await rpc('CAL,RESET', 'RSP,CAL,'); readCalStored(); $('calMsg').textContent = 'Calibration reset.'; } catch (e) { $('calMsg').textContent = e.message; } };
+async function readCalStored() {
+  try { const p = (await rpc('CAL,GET', 'RSP,CAL,')).split(','); $('calStored').textContent = 'gain ' + p[2] + ', offset ' + p[3] + ' cm'; }
+  catch (e) { $('calStored').textContent = '?'; }
+}
+$('calRefresh').onclick = readCalStored;
+
+// ---------------- Setting ----------------
+async function readSettings() {
+  try {
+    const p = (await rpc('CFG,GET', 'RSP,CFG')).split(',').slice(2).map(Number);
+    $('sWarn').value = p[0]; $('sDanger').value = p[1]; $('sShock').value = (p[2] / 100).toFixed(2); $('sBrake').value = (p[3] / 100).toFixed(2);
+    $('sBrakeMs').value = p[4]; $('sHold').value = p[5]; $('sBuz').checked = p[6] === 1; $('sMsg').textContent = 'Read from the device.';
+    thr = { warn: p[0], danger: p[1] }; setScale();
+  } catch (e) { $('sMsg').textContent = 'Read failed: ' + e.message; }
+}
+$('sRead').onclick = readSettings;
+$('sSave').onclick = async () => {
+  const v = [$('sWarn').value, $('sDanger').value, Math.round($('sShock').value * 100), Math.round($('sBrake').value * 100), $('sBrakeMs').value, $('sHold').value, $('sBuz').checked ? 1 : 0];
+  try { await rpc('CFG,SET,' + v.join(','), 'RSP,CFG'); $('sMsg').textContent = 'Saved to EEPROM.'; thr = { warn: Number(v[0]), danger: Number(v[1]) }; setScale(); }
+  catch (e) { $('sMsg').textContent = 'Rejected by the device (check the ranges; danger + 10 ≤ warning): ' + e.message; }
+};
+$('sReset').onclick = async () => { try { await rpc('CFG,RESET', 'RSP,CFG'); readSettings(); } catch (e) { $('sMsg').textContent = e.message; } };
+
+// hardware (HW,*) and I2C scan
+const hex = (n) => '0x' + Number(n).toString(16).toUpperCase().padStart(2, '0');
+function showHw(l) {
+  const p = l.split(',').slice(2).map(Number);
+  $('hAddr').value = hex(p[0]); $('hLcd').checked = p[1] === 1; $('hBl').checked = p[2] === 1; $('hChg').checked = p[3] === 1; $('hIna').checked = p[4] === 1;
+}
+async function readHw() {
+  try { showHw(await rpc('HW,GET', 'RSP,HW')); $('hMsg').textContent = 'Read from the device.'; }
+  catch (e) { $('hMsg').textContent = 'Read failed: ' + e.message; }
+}
+$('hRead').onclick = readHw;
+$('hSave').onclick = async () => {
+  const t = $('hAddr').value.trim(), addr = /^0x/i.test(t) ? parseInt(t, 16) : parseInt(t, 10);
+  if (!(addr >= 8 && addr <= 119)) { $('hMsg').textContent = 'Alamat harus 0x08–0x77 (mis. 0x27).'; return; }
+  const v = [addr, $('hLcd').checked ? 1 : 0, $('hBl').checked ? 1 : 0, $('hChg').checked ? 1 : 0, $('hIna').checked ? 1 : 0];
+  try { showHw(await rpc('HW,SET,' + v.join(','), 'RSP,HW')); $('hMsg').textContent = 'Saved to EEPROM (charger/INA have no function yet).'; }
+  catch (e) { $('hMsg').textContent = 'Rejected by the device: ' + e.message; }
+};
+$('hReset').onclick = async () => { try { showHw(await rpc('HW,RESET', 'RSP,HW')); $('hMsg').textContent = 'Bawaan dipulihkan.'; } catch (e) { $('hMsg').textContent = e.message; } };
+$('hScan').onclick = async () => {
+  $('hScanOut').textContent = 'Memindai…';
+  try {
+    const p = (await rpc('I2C,SCAN', 'RSP,I2C', 4000)).split(',').slice(3).map(Number);
+    const names = { 0x68: 'MPU6050', 0x27: 'LCD', 0x3F: 'LCD' };
+    $('hScanOut').textContent = p.length ? 'Found: ' + p.map((a) => hex(a) + (names[a] ? ' (' + names[a] + ')' : '')).join(', ') : 'No I2C devices (check the SDA/SCL wiring).';
+    const sel = $('hScanSel'); sel.innerHTML = '<option value="">(scan result)</option>';
+    p.filter((a) => a !== 0x68).forEach((a) => { const o = document.createElement('option'); o.value = hex(a); o.textContent = hex(a); sel.appendChild(o); });
+  } catch (e) { $('hScanOut').textContent = 'Failed: ' + e.message; }
+};
+$('hScanSel').onchange = () => { if ($('hScanSel').value) $('hAddr').value = $('hScanSel').value; };
+
+// ---------------- Learning ----------------
+let rows = lsGet('learnRows', []);   // {session,label,f[8]}
+let recording = false, recLabel = 0, recCount = 0, lastModel = null;
+ML.CLASSES.forEach((n, i) => { const o = document.createElement('option'); o.value = i; o.textContent = i + ' · ' + n; $('lrnClass').appendChild(o); });
+$('lrnSession').value = 'web-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '');
+function saveRows() { lsSet('learnRows', rows); renderDataset(); }
+function renderDataset() {
+  const counts = new Array(ML.N_OUT).fill(0);
+  rows.forEach((r) => counts[r.label]++);
+  const max = Math.max(1, ...counts);
+  const tb = $('lrnTable').querySelector('tbody'); tb.innerHTML = '';
+  counts.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + i + ' · ' + ML.CLASSES[i] + '</td><td>' + c + ' <span class="muted">(' + c + ' dtk)</span></td><td style="width:35%"><div class="bargraph" style="width:' + (c / max * 100) + '%"></div></td>';
+    tb.appendChild(tr);
+  });
+  const used = counts.filter((c) => c > 0).length;
+  $('lrnTotals').textContent = rows.length + ' windows from ' + used + ' classes. Recommended: ≥ 120 windows (2 minutes) per class, from several sessions.';
+}
+function onFeat(v) {
+  if (!recording || v.length !== 9) return;
+  const label = v[0];
+  if (label !== recLabel) return;
+  const f = v.slice(1);
+  if (f.some((x) => !Number.isFinite(x))) return;
+  rows.push({ session: $('lrnSession').value || 'web', label, f }); recCount++;
+  $('lrnLive').textContent = recCount + ' windows · ' + ML.FEATURES.map((n, i) => f[i]).join(' / ') + ' mg';
+  if (recCount % 10 === 0) saveRows();
+}
+$('lrnRec').onclick = async () => {
+  try {
+    if (!recording) {
+      recLabel = Number($('lrnClass').value); recCount = 0;
+      await rpc('REC,START,' + recLabel, 'RSP,REC,1'); recording = true;
+    } else {
+      recording = false; await rpc('REC,STOP', 'RSP,REC,0'); saveRows();
+    }
+  } catch (e) { logLine('err', e.message); recording = false; }
+  refreshButtons();
+};
+$('lrnImport').onclick = () => $('lrnFile').click();
+$('lrnFile').onchange = async () => {
+  let added = 0, skipped = 0;
+  for (const f of $('lrnFile').files) {
+    const r = ML.parseCsv(await f.text()); rows.push(...r.rows); added += r.rows.length; skipped += r.skipped;
+  }
+  $('lrnFile').value = ''; saveRows();
+  $('lrnTotals').textContent = 'Import: ' + added + ' windows added, ' + skipped + ' rows skipped. ' + $('lrnTotals').textContent;
+};
+$('lrnExport').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ML.toCsv(rows)], { type: 'text/csv' }));
+  a.download = 'learn-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('lrnClear').onclick = () => { if (confirm('Delete all data learning di browser ini?')) { rows = []; saveRows(); } };
+function updSize() {
+  const s = ML.modelSize(Number($('trHidden').value));
+  $('trSize').textContent = '≈ ' + s.flashBytes + ' B flash (bobot), ' + s.sramBytes + ' B SRAM saat inferensi. UNO punya sisa flash ±7 KB, SRAM ±800 B.';
+}
+$('trHidden').onchange = updSize; updSize();
+$('trGo').onclick = async () => {
+  $('trGo').disabled = true; $('trProg').textContent = 'Melatih…';
+  try {
+    const res = await ML.train(rows.map((r) => ({ label: r.label, f: r.f, session: r.session })), {
+      hidden: Number($('trHidden').value), epochs: Number($('trEpochs').value),
+      onProgress: (ep, loss) => { $('trProg').textContent = 'epoch ' + ep + ' · loss ' + loss.toFixed(3); },
+    });
+    lastModel = res.model;
+    $('trResult').innerHTML = 'Training accuracy <b>' + (res.train.accuracy * 100).toFixed(1) + '%</b> (' + res.train.n + ') · validation <b>' + (res.val.accuracy * 100).toFixed(1) + '%</b> (' + res.val.n + ').' +
+      (res.val.n < 20 ? ' <span style="color:var(--warn)">Little validation data: this number cannot be trusted yet.</span>' : '') +
+      '<br><span class="muted">Validation uses a slice of data from the same sessions; test in a car with a new session before trusting it.</span>';
+    renderConf(res.val.conf);
+    for (const id of ['mdlDownload', 'mdlWrite', 'mdlFlash']) $(id).disabled = id !== 'mdlDownload' && !helperOnline;
+  } catch (e) { $('trResult').textContent = 'Failed: ' + e.message; }
+  $('trGo').disabled = false; $('trProg').textContent = '';
+};
+function renderConf(conf) {
+  const used = [...conf.keys()].filter((i) => conf[i].some((v) => v) );
+  if (!used.length) { $('trConf').textContent = 'No validation data.'; return; }
+  let h = '<table class="conf"><tr><th>benar \\ prediksi</th>' + used.map((i) => '<th>' + i + '</th>').join('') + '</tr>';
+  for (const i of used) h += '<tr><th style="text-align:left">' + i + ' ' + ML.CLASSES[i] + '</th>' + used.map((j) => '<td class="' + (conf[i][j] ? (i === j ? 'hit' : 'miss') : '') + '">' + (conf[i][j] || '') + '</td>').join('') + '</tr>';
+  $('trConf').innerHTML = h + '</table>';
+}
+const headerText = () => ML.toHeader(lastModel, 'trained ' + new Date().toISOString().slice(0, 16) + ', ' + rows.length + ' windows,');
+$('mdlDownload').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([headerText()], { type: 'text/plain' }));
+  a.download = 'model_data.h'; a.click(); URL.revokeObjectURL(a.href);
+};
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.statusText); return j;
+}
+$('mdlWrite').onclick = async () => { try { await api('/api/model', { header: headerText() }); $('mdlMsg').textContent = 'model_data.h written. Compile & upload from the Dashboard.'; } catch (e) { $('mdlMsg').textContent = 'Failed: ' + e.message; } };
+$('mdlRemove').onclick = async () => { try { await api('/api/model', { clear: true }); $('mdlMsg').textContent = 'Model removed from the firmware source (stub). Recompile to apply.'; } catch (e) { $('mdlMsg').textContent = 'Failed: ' + e.message; } };
+$('mdlFlash').onclick = async () => {
+  try {
+    await api('/api/model', { header: headerText() });
+    $('mdlMsg').textContent = 'model_data.h written; compile & upload…';
+    await runBuild(true, 'firmware/car_alarm', $('lrnPort').value, (t) => { $('mdlMsg').textContent = t; });
+  } catch (e) { $('mdlMsg').textContent = 'Failed: ' + e.message; }
+};
+
+// ---------------- Firmware build ----------------
+let sketches = [], ports = [], helperOnline = false;
+async function loadPorts() {
+  try {
+    ports = (await api('/api/ports')).ports;
+    for (const sel of [$('portSel'), $('lrnPort')]) {
+      sel.innerHTML = ''; ports.forEach((p) => { const o = document.createElement('option'); o.value = p.address; o.textContent = p.address + (p.board ? ' · ' + p.board : ''); sel.appendChild(o); });
+      if (!ports.length) { const o = document.createElement('option'); o.textContent = '(no ports)'; sel.appendChild(o); }
+    }
+  } catch (e) { /* server offline */ }
+}
+async function initBuild() {
+  try {
+    const st = await api('/api/status');
+    if (!st.cli) throw new Error('arduino-cli not found');
+    sketches = st.sketches; helperOnline = true;
+    $('sketchSel').innerHTML = ''; sketches.forEach((s) => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.id; $('sketchSel').appendChild(o); });
+    $('sketchSel').value = 'firmware/car_alarm';
+    $('buildMeta').textContent = 'arduino-cli ' + (st.version || '') + ' · ' + st.fqbn;
+    await loadPorts();
+  } catch (e) { $('buildOffline').hidden = false; $('buildUi').hidden = true; for (const id of ['mdlWrite', 'mdlFlash', 'mdlRemove']) $(id).disabled = true; }
+}
+// Runs compile (+upload). The serial port must be closed for the upload and is reopened afterwards.
+async function runBuild(upload, sketch, portAddr, status) {
+  const reopen = connected && upload;
+  if (reopen) { await disconnect(); }
+  const out = $('buildLog'); out.hidden = false; out.textContent = '';
+  status && status('Running…');
+  const r = await fetch(upload ? '/api/upload' : '/api/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sketch, port: portAddr }) });
+  const rd = r.body.getReader(), dec = new TextDecoder(); let all = '';
+  for (;;) { const { value, done } = await rd.read(); if (done) break; all += dec.decode(value, { stream: true }); out.textContent = all; out.scrollTop = out.scrollHeight; }
+  const code = Number((/__EXIT__ (-?\d+)/.exec(all) || [])[1]);
+  const size = (/Sketch uses[^\n]*\n[^\n]*/.exec(all) || [''])[0];
+  status && status(code === 0 ? 'Done. ' + size.replace(/\n/g, ' ') : 'Failed (see the log on the Dashboard).');
+  $('buildStat').textContent = code === 0 ? 'Done' : 'Failed';
+  if (reopen) { $('buildStat').textContent += ' · reconnect the port to continue'; }
+  return code === 0;
+}
+$('btnPorts').onclick = loadPorts; $('lrnPorts').onclick = loadPorts;
+$('btnCompile').onclick = () => runBuild(false, $('sketchSel').value, '', (t) => { $('buildStat').textContent = t; }).catch((e) => { $('buildStat').textContent = e.message; });
+$('btnUpload').onclick = () => runBuild(true, $('sketchSel').value, $('portSel').value, (t) => { $('buildStat').textContent = t; }).catch((e) => { $('buildStat').textContent = e.message; });
+
+// ---------------- console ----------------
+$('rawSend').onclick = () => { const v = $('rawCmd').value.trim(); if (v) { sendLine(v).catch((e) => logLine('err', e.message)); $('rawCmd').value = ''; } };
+$('rawCmd').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('rawSend').click(); });
+$('logClear').onclick = () => { $('log').textContent = ''; };
+$('btnConnect').onclick = connect;
+
+if (!('serial' in navigator)) { $('unsupported').hidden = false; $('btnConnect').disabled = true; }
+renderCal(); renderDataset(); refreshButtons(); setScale(); renderStatus(); drawAll(); initBuild();
+</script>
+</body>
+</html>
