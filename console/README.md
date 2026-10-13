@@ -4,6 +4,8 @@ Web console for the Car Distance & Shock Alarm: **monitoring** (state, distance,
 
 The page is purely static (`index.html` + `ml.js`, no dependencies).
 
+Layout: a 244 px sidebar on desktop; below 760 px the sidebar becomes a bottom tab bar (Dashboard, Test IO, Learning, Calibrate, More) and Serial Monitor, Settings, Guide and About move under *More*. Light and dark themes follow the design tokens at the top of `index.html` (`:root` and `:root[data-theme=dark]`); the theme choice is remembered per browser. Fonts (Barlow, Barlow Condensed, JetBrains Mono) load from Google Fonts and fall back to system fonts offline.
+
 ## Two ways to use it
 
 | | GitHub Pages (hosted) | Local (`console/server`) |
