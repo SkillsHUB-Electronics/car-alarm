@@ -10,6 +10,7 @@
 #include "DistanceSensor.h"
 #include "Display.h"
 #include "Motion.h"
+#include "Power.h"
 #include "Settings.h"
 #include "config.h"
 #include "types.h"
@@ -42,7 +43,10 @@ void setup() {
   Serial.begin(9600);  // USB: same line protocol as the BLE module (commands in, events out)
   settingsBegin();
   Wire.begin();
+#ifdef ARDUINO_ARCH_AVR
   Wire.setWireTimeout(3000, true);  // a stuck I2C bus must not freeze the alarm
+#endif
+  power.begin();
   display.begin();
   display.showBoot("Car Alarm", "Calibrating MPU");
 
@@ -81,11 +85,11 @@ static void debugLine(unsigned long now) {
     o.print(pkBrake, 2);
     o.print(',');
     o.print(pkAccel, 2);
-    float a[3];
-    motion.lastAccel(a);
-    for (uint8_t k = 0; k < 3; k++) {  // ax, ay, az in mg (device frame)
+    float acc[3];
+    motion.lastAccel(acc);
+    for (uint8_t k = 0; k < 3; k++) {
       o.print(',');
-      o.print((int)(a[k] * 1000.0f));
+      o.print((int)(acc[k] * 1000.0f));
     }
     o.print('\n');
   }

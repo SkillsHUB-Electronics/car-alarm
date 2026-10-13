@@ -7,17 +7,15 @@ class Display {
  public:
   Display();
   void begin();
-  void apply();  // re-reads settings: LCD address, enable and backlight (takes effect immediately)
-  void setBacklight(bool on);
+  void apply();  // (re)build the LCD from `hw`: address, on/off, backlight
   void showBoot(const char *line1, const char *line2);
   void update(Status status, int16_t cm, bool motionOk, unsigned long now);
 
  private:
   void print(uint8_t row, const char *text);
 
-  bool enabled() const;
-
   LiquidCrystal_I2C lcd_;
   char last_[2][17] = {"", ""};
   unsigned long lastDraw_ = 0;
+  bool active_ = false;
 };

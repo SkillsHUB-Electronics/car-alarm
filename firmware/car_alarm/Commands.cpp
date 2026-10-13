@@ -1,4 +1,5 @@
 #include "Commands.h"
+#include "Power.h"
 #include <Wire.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -54,7 +55,7 @@ void Commands::poll(Stream &port, Channel &ch, unsigned long now) {
       ch.overflow = false;
       continue;
     }
-    if (ch.len >= LINE_MAX - 1) {
+    if (ch.len >= CMD_LINE_MAX - 1) {
       ch.overflow = true;
     } else {
       ch.buf[ch.len++] = c;
@@ -74,12 +75,32 @@ void Commands::handle(char *line, Print &out, unsigned long now) {
     out.print('\n');
   } else if (is(a[0], "CFG")) {
     cmdCfg(a, n, out);
-  } else if (is(a[0], "CAL")) {
-    cmdCal(a, n, out);
   } else if (is(a[0], "HW")) {
     cmdHw(a, n, out);
+  } else if (is(a[0], "PWR") && n == 2 && is(a[1], "GET")) {
+    PowerReading r = power.read();
+    out.print(F("RSP,PWR,"));
+    out.print(POWER_ENABLED ? 1 : 0);
+    out.print(',');
+    out.print(r.inaOk ? 1 : 0);
+    out.print(',');
+    out.print(r.mV);
+    out.print(',');
+    out.print(r.mA);
+    out.print(',');
+    out.print(r.charging ? 1 : 0);
+    out.print('\n');
   } else if (is(a[0], "I2C") && n == 2 && is(a[1], "SCAN")) {
-    cmdI2c(out);
+    out.print(F("RSP,I2C"));
+    for (uint8_t ad = 8; ad < 120; ad++) {
+      if (probe(ad)) {
+        out.print(',');
+        out.print(ad);
+      }
+    }
+    out.print('\n');
+  } else if (is(a[0], "CAL")) {
+    cmdCal(a, n, out);
   } else if (is(a[0], "IO")) {
     cmdIo(a, n, out, now);
   } else if (is(a[0], "REC")) {
@@ -155,6 +176,54 @@ void Commands::cmdCfg(char **a, uint8_t n, Print &out) {
   }
 }
 
+void Commands::printHw(Print &out) {
+  out.print(F("RSP,HW,"));
+  out.print(hw.lcdAddr);
+  out.print(',');
+  out.print(hw.lcdOn);
+  out.print(',');
+  out.print(hw.backlight);
+  out.print(',');
+  out.print(hw.charger);
+  out.print(',');
+  out.print(hw.ina);
+  out.print('\n');
+}
+
+void Commands::cmdHw(char **a, uint8_t n, Print &out) {
+  if (n == 2 && is(a[1], "GET")) {
+    printHw(out);
+  } else if (n == 2 && is(a[1], "RESET")) {
+    hwReset();
+    display_->apply();
+    printHw(out);
+  } else if (n == 7 && is(a[1], "SET")) {
+    long v[5];
+    for (uint8_t i = 0; i < 5; i++) v[i] = atol(a[2 + i]);
+    if (v[0] < 0 || v[0] > 255 || v[1] < 0 || v[1] > 1 || v[2] < 0 || v[2] > 1 || v[3] < 0 || v[3] > 1 || v[4] < 0 ||
+        v[4] > 1) {
+      err(out, F("HW"));
+      return;
+    }
+    HwConfig h;
+    h.lcdAddr = (uint8_t)v[0];
+    h.lcdOn = (uint8_t)v[1];
+    h.backlight = (uint8_t)v[2];
+    h.charger = (uint8_t)v[3];
+    h.ina = (uint8_t)v[4];
+    if (!hwValid(h)) {
+      err(out, F("HW"));
+      return;
+    }
+    hw = h;
+    hwSave();
+    display_->apply();
+    printHw(out);
+  } else {
+    err(out, F("HW"));
+  }
+}
+
 void Commands::printCal(Print &out) {
   out.print(F("RSP,CAL,"));
   out.print(calib.gain, 4);
@@ -197,79 +266,11 @@ void Commands::cmdCal(char **a, uint8_t n, Print &out) {
   }
 }
 
-void Commands::printHw(Print &out) {
-  out.print(F("RSP,HW,"));
-  out.print(settings.lcdAddr);
-  out.print(',');
-  out.print(settings.lcdOn);
-  out.print(',');
-  out.print(settings.backlight);
-  out.print(',');
-  out.print(settings.charger);
-  out.print(',');
-  out.print(settings.ina);
-  out.print('\n');
-}
-
-void Commands::cmdHw(char **a, uint8_t n, Print &out) {
-  if (n == 2 && is(a[1], "GET")) {
-    printHw(out);
-  } else if (n == 2 && is(a[1], "RESET")) {
-    Settings d = settings;
-    d.lcdAddr = LCD_ADDR;
-    d.lcdOn = 1;
-    d.backlight = 1;
-    d.charger = 0;
-    d.ina = 0;
-    settings = d;
-    settingsSave();
-    display_->apply();
-    printHw(out);
-  } else if (n == 7 && is(a[1], "SET")) {
-    long v[5];
-    for (uint8_t i = 0; i < 5; i++) v[i] = atol(a[2 + i]);
-    Settings s = settings;
-    if (v[0] < 8 || v[0] > 119 || v[1] < 0 || v[1] > 1 || v[2] < 0 || v[2] > 1 || v[3] < 0 || v[3] > 1 || v[4] < 0 ||
-        v[4] > 1) {
-      err(out, F("HW"));
-      return;
-    }
-    s.lcdAddr = (uint8_t)v[0];
-    s.lcdOn = (uint8_t)v[1];
-    s.backlight = (uint8_t)v[2];
-    s.charger = (uint8_t)v[3];
-    s.ina = (uint8_t)v[4];
-    settings = s;
-    settingsSave();
-    display_->apply();
-    printHw(out);
-  } else {
-    err(out, F("HW"));
-  }
-}
-
-// Probes every legal 7-bit address; ~0.1 ms each when nobody answers.
-void Commands::cmdI2c(Print &out) {
-  uint8_t found[8];
-  uint8_t count = 0;
-  for (uint8_t addr = 8; addr < 120; addr++) {
-    if (probe(addr) && count < 8) found[count++] = addr;
-  }
-  out.print(F("RSP,I2C,"));
-  out.print(count);
-  for (uint8_t i = 0; i < count; i++) {
-    out.print(',');
-    out.print(found[i]);
-  }
-  out.print('\n');
-}
-
 void Commands::ioOff() {
   io_ = false;
   buz_ = false;
   for (uint8_t i = 0; i < 3; i++) led_[i] = false;
   alerts_->test(false, false, false, false);  // the next Alerts::update() takes over
-  display_->setBacklight(settings.backlight != 0);
 }
 
 void Commands::cmdIo(char **a, uint8_t n, Print &out, unsigned long now) {
@@ -305,12 +306,6 @@ void Commands::cmdIo(char **a, uint8_t n, Print &out, unsigned long now) {
     char *sep = strchr(a[2], '|');
     if (sep) *sep++ = '\0';
     display_->showBoot(a[2], sep ? sep : "");
-  } else if (n == 3 && is(a[1], "BL")) {
-    display_->setBacklight(atoi(a[2]) != 0);
-  } else if (n >= 3 && is(a[1], "BT")) {
-    for (uint8_t i = 3; i < n; i++) *(a[i] - 1) = ',';
-    link_->ble().print(a[2]);
-    link_->ble().print('\n');
   } else if (n == 2 && is(a[1], "READ")) {
     int16_t d = dist_->rawX10(3);
     float v[3];
@@ -324,7 +319,7 @@ void Commands::cmdIo(char **a, uint8_t n, Print &out, unsigned long now) {
     out.print(',');
     out.print(*motionOk_ ? 1 : 0);
     out.print(',');
-    out.print(probe(settings.lcdAddr) ? 1 : 0);
+    out.print(probe(hw.lcdAddr) ? 1 : 0);
     out.print('\n');
     return;
   } else {

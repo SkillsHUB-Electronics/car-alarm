@@ -14,7 +14,9 @@ The page is purely static (`index.html` + `ml.js`, no dependencies).
 
 Hosted: <https://skillshub-electronics.github.io/car-alarm/>
 
-Browser: **desktop Chrome or Edge** (Web Serial). Close the Arduino IDE Serial Monitor first; a port can only be used by one program at a time.
+**BLE / iPhone (PWA):** the page is installable (manifest + service worker) and can connect over **Web Bluetooth** to the HM-10 style BLE module (service `FFE0`, characteristic `FFE1`), with the same line protocol as USB. Android Chrome and desktop Chrome/Edge support it directly. **iOS Safari does not support Web Bluetooth**: on iPhone/iPad open the hosted URL in the free **Bluefy** browser (App Store), then use *Connect BLE*. Not yet tested on real hardware.
+
+Browser for USB: **desktop Chrome or Edge** (Web Serial). Close the Arduino IDE Serial Monitor first; a port can only be used by one program at a time.
 
 ## Running locally
 
