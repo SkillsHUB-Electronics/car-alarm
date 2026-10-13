@@ -8,7 +8,11 @@
 #endif
 
 #ifndef PIN_CHRG
+#if defined(ARDUINO_ARCH_ESP32)
+#define PIN_CHRG 13           // GPIO13 (GPIO12 is a strapping pin)
+#else
 #define PIN_CHRG 12           // TP4056 CHRG (open-drain, LOW while charging); D12 is free on the UNO
+#endif
 #endif
 
 #ifndef INA_ADDR
