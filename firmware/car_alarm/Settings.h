@@ -28,9 +28,17 @@ struct HwConfig {
   uint8_t ina;         // reserved: INA current sensor
 };
 
+// INA219 calibration (own EEPROM block): corrected = raw * gain / 1000 (+ offset for current).
+struct PowerCal {
+  uint16_t vGain;      // per-mille, 500..2000
+  uint16_t iGain;      // per-mille, 500..2000
+  int16_t iOffsetMa;   // added to the current, -500..500
+};
+
 extern Settings settings;
 extern HwConfig hw;
 extern Calib calib;
+extern PowerCal pcal;
 
 void settingsBegin();                       // load from EEPROM, or defaults if empty/corrupt
 bool settingsValid(const Settings &s);
@@ -41,4 +49,7 @@ void calibSave();
 bool hwValid(const HwConfig &h);
 void hwSave();
 void hwReset();                             // defaults (LCD_ADDR, LCD on, backlight on), saved
+bool pcalValid(const PowerCal &p);
+void pcalSave();
+void pcalReset();                           // gains 1000, offset 0, saved
 void calibReset();                          // gain 1, offset 0, saved

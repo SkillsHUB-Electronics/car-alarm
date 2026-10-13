@@ -30,8 +30,10 @@ PowerReading Power::read() {
     int16_t bus, shunt;
     if (readReg(REG_BUS, bus) && readReg(REG_SHUNT, shunt)) {
       r.inaOk = true;
-      r.mV = (int16_t)(((uint16_t)bus >> 3) * 4);
-      r.mA = ((int32_t)shunt * 10) / INA_SHUNT_MOHM;  // uV / mOhm = mA
+      int32_t mv = ((uint16_t)bus >> 3) * 4L;
+      int32_t ma = ((int32_t)shunt * 10) / INA_SHUNT_MOHM;  // uV / mOhm = mA
+      r.mV = (int16_t)(mv * pcal.vGain / 1000);
+      r.mA = ma * pcal.iGain / 1000 + pcal.iOffsetMa;
     }
   }
   return r;

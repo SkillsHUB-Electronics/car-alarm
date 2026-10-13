@@ -13,6 +13,8 @@
 //   CFG,SET,<warn>,<danger>,<shock100>,<brake100>,<brakeMs>,<holdS>,<buzzer>
 //   HW,GET | HW,RESET               RSP,HW,<lcdAddr 8..119>,<lcdOn>,<backlight>,<charger>,<ina>
 //   HW,SET,<lcdAddr>,<lcdOn>,<backlight>,<charger>,<ina>   (charger/ina are stored only; no driver yet)
+//   PCAL,GET | PCAL,RESET           RSP,PCAL,<vGain>,<iGain>,<iOffset mA>   (per-mille gains 500..2000)
+//   PCAL,SET,<vGain>,<iGain>,<iOffset>   INA219 calibration, stored in EEPROM
 //   PWR,GET                         RSP,PWR,<built 0/1>,<ina ok 0/1>,<mV>,<mA>,<charging 0/1>
 //   I2C,SCAN                        RSP,I2C,<addr>,<addr>... (decimal addresses that answered)
 //   CAL,GET | CAL,RESET             RSP,CAL,<gain>,<offset>
@@ -50,6 +52,7 @@ class Commands {
   void printCfg(Print &out);
   void printCal(Print &out);
   void cmdHw(char **a, uint8_t n, Print &out);
+  void cmdPcal(char **a, uint8_t n, Print &out);
   void printHw(Print &out);
 
   BtLink *link_ = nullptr;

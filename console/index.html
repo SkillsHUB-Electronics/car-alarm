@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Car Alarm Console</title>
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1d6fe0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -79,7 +80,7 @@
 <body>
 <div class="app">
 <aside>
-  <div class="logo">🚗 Car Alarm</div>
+  <div class="logo"><img src="icon-192.png" alt="" width="28" height="28" style="vertical-align:middle;border-radius:7px"> Car Alarm</div>
   <nav id="tabs">
     <button data-tab="dash" class="active">▦ Dashboard</button>
     <button data-tab="io">⚡ Test IO</button>
@@ -107,16 +108,6 @@
 <main>
 <!-- ============ DASHBOARD ============ -->
 <div class="tab active" id="tab-dash">
-  <section class="card wide">
-    <h2>Compile &amp; Upload <span class="muted" style="text-transform:none">(no Arduino IDE needed)</span></h2>
-    <div id="buildOffline" class="small muted" hidden>Compile &amp; upload needs the local helper server (arduino-cli): run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
-    <div id="buildUi">
-      <div class="row"><label style="min-width:auto">Sketch</label><select id="sketchSel" style="min-width:260px"></select><label style="min-width:auto">Port</label><select id="portSel" style="min-width:200px"></select><button id="btnPorts">⟳</button>
-        <button id="btnCompile">Compile</button><button id="btnUpload" class="primary">Compile &amp; Upload</button><span id="buildStat" class="small muted"></span></div>
-      <div id="buildMeta" class="small muted"></div>
-      <div class="log" id="buildLog" hidden style="height:160px;margin-top:8px"></div>
-    </div>
-  </section>
   <section class="card">
     <h2>Status</h2>
     <div class="status" id="dStatus">-</div>
@@ -202,6 +193,16 @@
     <div class="small muted" id="calMsg"></div>
   </section>
   <section class="card wide">
+    <h2>INA219 calibration (voltage &amp; current)</h2>
+    <p class="small muted">Measure the same point with a multimeter, enter the real values and press Calibrate. The device keeps per-mille gains and a current offset in EEPROM (separate block). Needs a firmware built with <code>POWER_ENABLED=1</code> and INA enabled in Settings. For the zero offset, disconnect the load first.</p>
+    <div class="row"><label>Reading now</label><span id="inaNow" class="muted">-</span><button id="inaRead">Read</button></div>
+    <div class="row"><label>Real voltage</label><input type="number" id="inaV" step="0.001" min="0" max="32"><span class="muted">V</span></div>
+    <div class="row"><label>Real current</label><input type="number" id="inaI" step="1" min="1" max="3200"><span class="muted">mA</span></div>
+    <div class="row"><button id="inaCalV" class="primary">Calibrate voltage</button><button id="inaCalI" class="primary">Calibrate current</button><button id="inaZero">Zero current offset (no load)</button><button id="inaReset">Reset</button></div>
+    <div class="row"><label>Stored on device</label><span id="inaStored" class="muted">-</span></div>
+    <div class="small muted" id="inaMsg"></div>
+  </section>
+  <section class="card wide">
     <h2>MPU6050 calibration</h2>
     <p class="small muted">The MPU6050 offset is calibrated automatically for 1 s at power-up: power on or reset the UNO while the unit is <b>stationary and level</b>. Watch X/Y/Z on the Dashboard (Z ≈ 1.00 g, X and Y ≈ 0). The car's forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in the Settings tab.</p>
   </section>
@@ -269,10 +270,20 @@
     <div class="small muted" id="hScanOut" style="margin:-4px 0 10px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
     <div class="row"><label>LCD</label><label class="switch"><input type="checkbox" id="hLcd"> enabled</label></div>
     <div class="row"><label>LCD backlight</label><label class="switch"><input type="checkbox" id="hBl"> on</label></div>
-    <div class="row"><label>Battery charger</label><label class="switch"><input type="checkbox" id="hChg"> enabled</label><span class="tag">not active yet: stored only</span></div>
-    <div class="row"><label>INA (current sensor)</label><label class="switch"><input type="checkbox" id="hIna"> enabled</label><span class="tag">not active yet: stored only</span></div>
+    <div class="row"><label>Battery charger</label><label class="switch"><input type="checkbox" id="hChg"> enabled</label><span class="tag">needs firmware built with POWER_ENABLED=1</span></div>
+    <div class="row"><label>INA (current sensor)</label><label class="switch"><input type="checkbox" id="hIna"> enabled</label><span class="tag">needs firmware built with POWER_ENABLED=1</span></div>
     <div class="row"><button id="hRead">Read from device</button><button id="hSave" class="primary">Save</button><button id="hReset">Restore defaults</button></div>
     <div class="small muted" id="hMsg">Address/LCD/backlight changes apply immediately; the address must be 0x08–0x77.</div>
+  </section>
+  <section class="card wide">
+    <h2>Compile &amp; Upload <span class="muted" style="text-transform:none">(no Arduino IDE needed)</span></h2>
+    <div id="buildOffline" class="small muted" hidden>Compile &amp; upload needs the local helper server (arduino-cli): run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
+    <div id="buildUi">
+      <div class="row"><label style="min-width:auto">Sketch</label><select id="sketchSel" style="min-width:260px"></select><label style="min-width:auto">Port</label><select id="portSel" style="min-width:200px"></select><button id="btnPorts">⟳</button>
+        <button id="btnCompile">Compile</button><button id="btnUpload" class="primary">Compile &amp; Upload</button><span id="buildStat" class="small muted"></span></div>
+      <div id="buildMeta" class="small muted"></div>
+      <div class="log" id="buildLog" hidden style="height:160px;margin-top:8px"></div>
+    </div>
   </section>
 </div>
 
@@ -560,7 +571,7 @@ function refreshButtons() {
   $('ioToggle').textContent = io ? 'End Test IO' : 'Start Test IO';
   $('lrnRec').disabled = !on;
   $('lrnRec').textContent = recording ? 'Stop' : 'Record';
-  for (const id of ['calMeasure', 'calApply', 'calReset', 'calRefresh', 'sRead', 'sSave', 'sReset', 'hRead', 'hSave', 'hReset', 'hScan']) $(id).disabled = !on;
+  for (const id of ['inaRead', 'inaCalV', 'inaCalI', 'inaZero', 'inaReset', 'calMeasure', 'calApply', 'calReset', 'calRefresh', 'sRead', 'sSave', 'sReset', 'hRead', 'hSave', 'hReset', 'hScan']) $(id).disabled = !on;
 }
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('active', x === b));
@@ -683,6 +694,46 @@ async function readCalStored() {
   catch (e) { $('calStored').textContent = '?'; }
 }
 $('calRefresh').onclick = readCalStored;
+// ---------------- INA219 calibration ----------------
+let inaCal = { v: 1000, i: 1000, o: 0 };
+async function inaReadAll() {
+  try {
+    const c = (await rpc('PCAL,GET', 'RSP,PCAL,')).split(',');
+    inaCal = { v: +c[2], i: +c[3], o: +c[4] };
+    $('inaStored').textContent = 'V gain ' + (inaCal.v / 1000).toFixed(3) + ', I gain ' + (inaCal.i / 1000).toFixed(3) + ', I offset ' + inaCal.o + ' mA';
+    const w = (await rpc('PWR,GET', 'RSP,PWR,')).split(',');
+    if (w[2] !== '1') { $('inaNow').textContent = 'firmware built without POWER_ENABLED'; return null; }
+    if (w[3] !== '1') { $('inaNow').textContent = 'INA219 not responding (enable it in Settings, check wiring)'; return null; }
+    const r = { mV: +w[4], mA: +w[5] };
+    $('inaNow').textContent = r.mV + ' mV, ' + r.mA + ' mA';
+    return r;
+  } catch (e) { $('inaMsg').textContent = e.message; return null; }
+}
+async function inaSave(c, msg) {
+  try {
+    await rpc('PCAL,SET,' + Math.round(c.v) + ',' + Math.round(c.i) + ',' + Math.round(c.o), 'RSP,PCAL,');
+    $('inaMsg').textContent = msg;
+  } catch (e) { $('inaMsg').textContent = 'Rejected: ' + e.message + ' (gain must stay within 0.5 to 2.0, offset within ±500 mA)'; }
+  inaReadAll();
+}
+$('inaRead').onclick = inaReadAll;
+$('inaCalV').onclick = async () => {
+  const real = parseFloat($('inaV').value) * 1000; const r = await inaReadAll();
+  if (!r || !(real > 0) || r.mV <= 0) { $('inaMsg').textContent = 'Enter the real voltage and make sure the INA219 reads.'; return; }
+  inaSave({ v: inaCal.v * real / r.mV, i: inaCal.i, o: inaCal.o }, 'Voltage calibrated.');
+};
+$('inaCalI').onclick = async () => {
+  const real = parseFloat($('inaI').value); const r = await inaReadAll();
+  if (!r || !(real > 0) || r.mA - inaCal.o <= 0) { $('inaMsg').textContent = 'Enter the real current (> 0) with a load connected.'; return; }
+  inaSave({ v: inaCal.v, i: inaCal.i * real / (r.mA - inaCal.o), o: inaCal.o }, 'Current calibrated.');
+};
+$('inaZero').onclick = async () => {
+  const r = await inaReadAll();
+  if (!r) return;
+  inaSave({ v: inaCal.v, i: inaCal.i, o: inaCal.o - r.mA }, 'Zero offset set (load must have been disconnected).');
+};
+$('inaReset').onclick = () => inaSave({ v: 1000, i: 1000, o: 0 }, 'Reset to gain 1, offset 0.');
+
 
 // ---------------- Setting ----------------
 async function readSettings() {

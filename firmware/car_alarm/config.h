@@ -6,6 +6,18 @@
 #define FW_VERSION "2.1"
 
 // ---- Pins -----------------------------------------------------------------
+#if defined(ARDUINO_ARCH_ESP32)
+// ESP32 DevKit (30/38-pin): avoids strapping pins (0, 2, 5, 12, 15) and input-only pins (34-39).
+// I2C uses the default Wire pins SDA 21 / SCL 22. HC-SR04 ECHO outputs 5 V: divide it to 3.3 V (e.g. 1k/2k).
+constexpr uint8_t PIN_TRIG = 25;
+constexpr uint8_t PIN_ECHO = 26;
+constexpr uint8_t PIN_BT_RX = 16;  // ESP32 receives (HM-10 TX)
+constexpr uint8_t PIN_BT_TX = 17;  // ESP32 transmits (HM-10 RX; 3.3 V logic, no divider needed)
+constexpr uint8_t PIN_BUZZER = 27;  // via NPN transistor
+constexpr uint8_t PIN_LED_RED = 32;
+constexpr uint8_t PIN_LED_GREEN = 33;
+constexpr uint8_t PIN_LED_YELLOW = 14;
+#else
 constexpr uint8_t PIN_TRIG = 2;
 constexpr uint8_t PIN_ECHO = 3;
 constexpr uint8_t PIN_BT_RX = 10;  // Arduino receives (HC-05 TX)
@@ -14,6 +26,7 @@ constexpr uint8_t PIN_BUZZER = 8;  // via NPN transistor
 constexpr uint8_t PIN_LED_RED = 5;
 constexpr uint8_t PIN_LED_GREEN = 6;
 constexpr uint8_t PIN_LED_YELLOW = 7;
+#endif
 
 // ---- I2C addresses --------------------------------------------------------
 constexpr uint8_t LCD_ADDR = 0x27;

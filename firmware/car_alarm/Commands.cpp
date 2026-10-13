@@ -90,6 +90,8 @@ void Commands::handle(char *line, Print &out, unsigned long now) {
     out.print(',');
     out.print(r.charging ? 1 : 0);
     out.print('\n');
+  } else if (is(a[0], "PCAL")) {
+    cmdPcal(a, n, out);
   } else if (is(a[0], "I2C") && n == 2 && is(a[1], "SCAN")) {
     out.print(F("RSP,I2C"));
     for (uint8_t ad = 8; ad < 120; ad++) {
@@ -187,6 +189,29 @@ void Commands::printHw(Print &out) {
   out.print(hw.charger);
   out.print(',');
   out.print(hw.ina);
+  out.print('\n');
+}
+
+void Commands::cmdPcal(char **a, uint8_t n, Print &out) {
+  if (n == 2 && (is(a[1], "GET") || is(a[1], "RESET"))) {
+    if (is(a[1], "RESET")) pcalReset();
+  } else if (n == 5 && is(a[1], "SET")) {
+    PowerCal p;
+    p.vGain = (uint16_t)atoi(a[2]);
+    p.iGain = (uint16_t)atoi(a[3]);
+    p.iOffsetMa = (int16_t)atoi(a[4]);
+    if (!pcalValid(p)) return err(out, F("PCAL"));
+    pcal = p;
+    pcalSave();
+  } else {
+    return err(out, F("PCAL"));
+  }
+  out.print(F("RSP,PCAL,"));
+  out.print(pcal.vGain);
+  out.print(',');
+  out.print(pcal.iGain);
+  out.print(',');
+  out.print(pcal.iOffsetMa);
   out.print('\n');
 }
 
