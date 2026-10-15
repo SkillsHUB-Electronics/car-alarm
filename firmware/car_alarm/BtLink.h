@@ -15,7 +15,11 @@ class TeePrint : public Print {
   explicit TeePrint(Print &bt) : bt_(bt) {}
   size_t write(uint8_t c) override {
     Serial.write(c);
+#if INC_BT
     return bt_.write(c);
+#else
+    return 1;
+#endif
   }
 
  private:

@@ -22,3 +22,24 @@
 #ifndef INA_SHUNT_MOHM
 #define INA_SHUNT_MOHM 100    // shunt resistor in milliohm (INA219 breakout: R100 = 100 mOhm)
 #endif
+
+// Interfaces that can be left out of the build (-DINC_LCD=0 etc.). A disabled interface is never initialised
+// and does nothing at runtime (no traffic on its pins or bus). 1 = present (default).
+#ifndef INC_DIST
+#define INC_DIST 1            // HC-SR04 distance sensor (off: no distance readings, no distance alarm)
+#endif
+#ifndef INC_BT
+#define INC_BT 1              // Bluetooth/BLE module (off: USB serial only)
+#endif
+#ifndef INC_BUZZER
+#define INC_BUZZER 1
+#endif
+#ifndef INC_LED
+#define INC_LED 1             // red, yellow and green LEDs
+#endif
+#ifndef INC_LCD
+#define INC_LCD 1             // 16x2 I2C LCD
+#endif
+#ifndef INC_MPU
+#define INC_MPU 1             // MPU6050 (off: no shock/brake detection, no learning features)
+#endif

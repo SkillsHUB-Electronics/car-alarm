@@ -3,26 +3,45 @@
 #include "Settings.h"
 
 void Alerts::begin() {
+#if INC_BUZZER
   pinMode(PIN_BUZZER, OUTPUT);
+#endif
+#if INC_LED
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_YELLOW, OUTPUT);
   pinMode(PIN_LED_GREEN, OUTPUT);
+#endif
   set(false, false, false, false);
 }
 
-void Alerts::set(bool red, bool yellow, bool green, bool buzzer) {
+// LEDs and buzzer are written through these so a build without them (INC_LED / INC_BUZZER = 0) does nothing.
+static void writeLeds(bool red, bool yellow, bool green) {
+#if INC_LED
   digitalWrite(PIN_LED_RED, red);
   digitalWrite(PIN_LED_YELLOW, yellow);
   digitalWrite(PIN_LED_GREEN, green);
-  digitalWrite(PIN_BUZZER, buzzer && settings.buzzer);
+#else
+  (void)red; (void)yellow; (void)green;
+#endif
+}
+
+static void writeBuzzer(bool on) {
+#if INC_BUZZER
+  digitalWrite(PIN_BUZZER, on);
+#else
+  (void)on;
+#endif
+}
+
+void Alerts::set(bool red, bool yellow, bool green, bool buzzer) {
+  writeLeds(red, yellow, green);
+  writeBuzzer(buzzer && settings.buzzer);
 }
 
 // Test-IO mode: drive the outputs directly (the buzzer ignores the Settings mute).
 void Alerts::test(bool red, bool yellow, bool green, bool buzzer) {
-  digitalWrite(PIN_LED_RED, red);
-  digitalWrite(PIN_LED_YELLOW, yellow);
-  digitalWrite(PIN_LED_GREEN, green);
-  digitalWrite(PIN_BUZZER, buzzer);
+  writeLeds(red, yellow, green);
+  writeBuzzer(buzzer);
 }
 
 void Alerts::update(Status status, unsigned long now, unsigned long since) {

@@ -213,6 +213,16 @@
   .steps button .n { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:var(--track); color:var(--muted); font-weight:600; }
   .steps button.done .n { background:var(--safe); color:#fff; } .steps button.cur { background:var(--cobalt-soft); color:var(--ink); } .steps button.cur .n { background:var(--cobalt); color:#fff; }
   .cls { margin:12px 0; } .cls .t { display:flex; justify-content:space-between; font-weight:600; margin-bottom:5px; } .cls .t span:last-child { color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums; }
+  #tab-cal.active { align-items:stretch; } #calPtsCard { display:flex; flex-direction:column; } #calPtsCard .tblscroll { flex:1 1 0; min-height:220px; overflow:auto; margin-top:12px; } #calPtsCard thead th { position:sticky; top:0; background:var(--surface); z-index:1; }
+  .ifrow { display:grid; grid-template-columns:minmax(170px,1fr) 2fr; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .ifrow:last-child { border-bottom:0; }
+  .ifhead { display:flex; gap:12px; align-items:center; cursor:pointer; } .ifhead b { display:block; font-weight:600; } .ifhead small { color:var(--muted); font-size:12.5px; }
+  .ifpins { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:10px; } .ifpins .fl { margin-bottom:4px; }
+  .ifrow.off .ifpins { opacity:.4; pointer-events:none; }
+  .sep { border:0; border-top:1px solid var(--line); margin:18px 0 14px; }
+  @media (max-width:560px) { .ifrow { grid-template-columns:1fr; } }
+  #tab-set.active { align-items:stretch; }
+  #tab-learn.active { align-items:stretch; } #lrnLeft { grid-template-rows:auto 1fr; }
   .conf td,.conf th { padding:4px 6px; font-size:12.5px; text-align:center; } .conf td.hit { font-weight:700; color:var(--safe-ink); } .conf td.miss { color:var(--danger-ink); font-weight:700; }
 
   /* ---------- serial monitor ---------- */
@@ -243,7 +253,7 @@
 
   .stack { display:grid; gap:16px; align-content:start; }
   .stack > .notice { margin-bottom:0; }
-  .hwrow { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+  .hwrow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; }
   .line > .l { flex-wrap:wrap; row-gap:4px; }
   .banner .cta { display:none; gap:10px; }
   button:focus-visible,.tabs button:focus-visible,.quick button:focus-visible,.steps button:focus-visible,summary:focus-visible,a:focus-visible { outline:2px solid var(--cobalt); outline-offset:2px; }
@@ -318,7 +328,7 @@
     <button class="nav" data-tab="cal"><svg class="i"><use href="#i-ruler"/></svg>Calibration</button>
     <button class="nav" data-tab="mon"><svg class="i"><use href="#i-term"/></svg>Serial Monitor</button>
     <hr>
-    <button class="nav" data-tab="set"><svg class="i"><use href="#i-sliders"/></svg>Settings</button>
+    <button class="nav" data-tab="set"><svg class="i"><use href="#i-sliders"/></svg>Config</button>
     <button class="nav" data-tab="guide"><svg class="i"><use href="#i-book"/></svg>Guide</button>
     <button class="nav" data-tab="about"><svg class="i"><use href="#i-info"/></svg>About</button>
   </nav>
@@ -450,39 +460,32 @@
 
 <!-- ============ CALIBRATION ============ -->
 <div class="page" id="tab-cal">
-  <section class="card c6">
+  <section class="card c6" id="calPtsCard">
     <div class="hd"><h2>Measurement points</h2></div>
     <p class="hint">Place a flat obstacle at a known distance (measure with a ruler or tape from the sensor face), enter the true distance and press Measure. The device averages 10 raw readings. Take at least 4 spread-out points (e.g. 20, 50, 100, 200 cm).</p>
     <label class="fl" for="calTrue">True distance</label>
     <div class="split"><div class="unitbox"><input type="number" id="calTrue" step="0.1" min="2" max="400" value="50"><em>cm</em></div><button class="btn primary" id="calMeasure"><svg class="i"><use href="#i-target"/></svg>Measure</button></div>
-    <table id="calTable" style="margin-top:12px"><thead><tr><th>#</th><th>True</th><th>Raw</th><th>Err. before</th><th class="num">Err. after</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="tblscroll"><table id="calTable"><thead><tr><th>#</th><th>True</th><th>Raw</th><th>Err. before</th><th class="num">Err. after</th><th></th></tr></thead><tbody></tbody></table></div>
     <button class="btn ghost sm" id="calClear" style="margin-top:6px"><svg class="i"><use href="#i-trash"/></svg>Clear points</button>
   </section>
+  <section class="card c6">
+    <div class="hd"><h2>Result</h2></div>
+    <label class="fl" for="calMode">Method</label>
+    <select id="calMode"><option value="reg">Linear regression (gain + offset)</option><option value="off">Offset only (mean difference)</option></select>
+    <canvas id="calChart" style="width:100%;height:190px;display:block;margin-top:14px"></canvas>
+    <div class="chartfoot" style="justify-content:center"><span><span class="leg" style="color:var(--cobalt)">Fitted</span><span class="leg" style="color:var(--safe)">Ideal</span></span><span>Raw (y) vs true (x), cm</span></div>
+    <div style="margin-top:6px">
+      <div class="line"><span class="l">Gain</span><span class="r" id="calGain">&mdash;</span></div>
+      <div class="line"><span class="l">Offset (cm)</span><span class="r" id="calOff">&mdash;</span></div>
+      <div class="line"><span class="l">RMSE before &rarr; after</span><span class="r" id="calRmse">&mdash;</span></div>
+      <div class="line"><span class="l">Max error after</span><span class="r" id="calMax">&mdash;</span></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="calApply"><svg class="i"><use href="#i-upload"/></svg>Apply to device (EEPROM)</button><button class="btn" id="calReset"><svg class="i"><use href="#i-refresh"/></svg>Reset</button></div>
+    <div class="actions" style="margin-top:12px;justify-content:flex-end"><span class="hint">Stored on device: <span id="calStored">&mdash;</span></span><button class="btn sm" id="calRefresh">Read</button></div>
+    <div class="msg" id="calMsg"></div>
+  </section>
 
-  <div class="c6" style="display:grid;gap:16px">
-    <section class="card">
-      <div class="hd"><h2>Accelerometer</h2><span class="chip" id="calZ">Z &mdash;</span></div>
-      <p class="hint" style="margin:0"><b style="color:var(--ink)">MPU6050 calibrates itself at power-up.</b> Keep the unit <b>stationary and level</b>, then reset the UNO. Check X/Y/Z on the Dashboard (Z &asymp; 1.00 g, X and Y &asymp; 0). The forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in Settings.</p>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>Result</h2></div>
-      <label class="fl" for="calMode">Method</label>
-      <select id="calMode"><option value="reg">Linear regression (gain + offset)</option><option value="off">Offset only (mean difference)</option></select>
-      <canvas id="calChart" style="width:100%;height:190px;display:block;margin-top:14px"></canvas>
-      <div class="chartfoot" style="justify-content:center"><span><span class="leg" style="color:var(--cobalt)">Fitted</span><span class="leg" style="color:var(--safe)">Ideal</span></span><span>Raw (y) vs true (x), cm</span></div>
-      <div style="margin-top:6px">
-        <div class="line"><span class="l">Gain</span><span class="r" id="calGain">&mdash;</span></div>
-        <div class="line"><span class="l">Offset (cm)</span><span class="r" id="calOff">&mdash;</span></div>
-        <div class="line"><span class="l">RMSE before &rarr; after</span><span class="r" id="calRmse">&mdash;</span></div>
-        <div class="line"><span class="l">Max error after</span><span class="r" id="calMax">&mdash;</span></div>
-      </div>
-      <div class="actions" style="margin-top:12px"><button class="btn primary" id="calApply"><svg class="i"><use href="#i-upload"/></svg>Apply to device (EEPROM)</button><button class="btn" id="calReset"><svg class="i"><use href="#i-refresh"/></svg>Reset</button></div>
-      <div class="actions" style="margin-top:12px;justify-content:flex-end"><span class="hint">Stored on device: <span id="calStored">&mdash;</span></span><button class="btn sm" id="calRefresh">Read</button></div>
-      <div class="msg" id="calMsg"></div>
-    </section>
-  </div>
-
-  <section class="card">
+  <section class="card c6">
     <div class="hd"><h2>INA219 calibration (voltage &amp; current)</h2></div>
     <p class="hint">Measure the same point with a multimeter, enter the real values and press Calibrate. The device keeps per-mille gains and a current offset in EEPROM (separate block). Needs a firmware built with <code>POWER_ENABLED=1</code> and INA enabled in Settings. For the zero offset, disconnect the load first.</p>
     <div class="line"><span class="l">Reading now</span><span class="r"><span id="inaNow" class="hint">&mdash;</span><button class="btn sm" id="inaRead">Read</button></span></div>
@@ -494,6 +497,10 @@
     <div class="line" style="margin-top:8px"><span class="l">Stored on device</span><span class="r hint" id="inaStored">&mdash;</span></div>
     <div class="msg" id="inaMsg"></div>
   </section>
+  <section class="card c6" id="calAccCard">
+    <div class="hd"><h2>Accelerometer</h2><span class="chip" id="calZ">Z &mdash;</span></div>
+    <p class="hint" style="margin:0"><b style="color:var(--ink)">MPU6050 calibrates itself at power-up.</b> Keep the unit <b>stationary and level</b>, then reset the UNO. Check X/Y/Z on the Dashboard (Z &asymp; 1.00 g, X and Y &asymp; 0). The forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in Settings.</p>
+  </section>
 </div>
 
 <!-- ============ LEARNING ============ -->
@@ -503,7 +510,8 @@
     <button data-step="lrnTrainCard" id="stp2"><span class="n">2</span>Train</button>
     <button data-step="lrnDeployCard" id="stp3"><span class="n">3</span>Deploy</button>
   </div>
-  <section class="card c6" id="lrnRecCard">
+  <div class="c6 stack" id="lrnLeft">
+  <section class="card" id="lrnRecCard">
     <div class="hd"><h2>1 &middot; Record</h2><span class="chip" id="lrnConn">Not connected</span></div>
     <p class="hint">Mount the unit in the car (MPU +Y facing forward), pick a class, press Record, perform the manoeuvre, then Stop. The device sends 8 features per second over USB. Data can also be <b>imported</b> from a CSV exported by the Android app. Recording while driving is unsafe: have someone else operate it, or use the app on the phone.</p>
     <div class="field"><label class="fl" for="lrnClass">Class</label><select id="lrnClass"></select></div>
@@ -511,13 +519,7 @@
     <button class="btn primary block" id="lrnRec"><svg class="i"><use href="#i-play"/></svg><span id="lrnRecText">Record</span></button>
     <div class="msg" id="lrnLive"></div>
   </section>
-  <section class="card c6" id="lrnDataCard">
-    <div class="hd"><h2>Dataset</h2><span class="actions" style="gap:8px"><button class="btn sm" id="lrnImport"><svg class="i"><use href="#i-upload"/></svg>Import CSV</button><input type="file" id="lrnFile" accept=".csv,text/csv,text/plain" multiple hidden><button class="btn sm" id="lrnExport"><svg class="i"><use href="#i-download"/></svg>Export CSV</button><button class="btn sm icon" id="lrnClear" title="Delete all" aria-label="Delete all data"><svg class="i"><use href="#i-trash"/></svg></button></span></div>
-    <div class="stats"><div class="stat"><small>Windows</small><b id="lrnTotal">0</b></div><div class="stat"><small>Classes ready</small><b id="lrnReady">0 of 14</b></div><div class="stat"><small>Target per class</small><b>120</b></div></div>
-    <div id="lrnTable" style="margin-top:12px"></div>
-    <div class="hint" id="lrnTotals" style="margin-top:8px"></div>
-  </section>
-  <section class="card c6" id="lrnTrainCard">
+  <section class="card" id="lrnTrainCard">
     <div class="hd"><h2>2 &middot; Train</h2></div>
     <div class="field"><label class="fl" for="trHidden">Hidden neurons</label><select id="trHidden"><option>8</option><option selected>12</option><option>16</option><option>24</option><option>32</option></select></div>
     <div class="field"><label class="fl" for="trEpochs">Epochs</label><input type="number" id="trEpochs" value="300" min="20" max="3000" step="10"></div>
@@ -526,6 +528,13 @@
     <button class="btn primary block" id="trGo" style="margin-top:16px">Train model</button>
     <div class="msg" id="trProg"></div>
     <div id="trResult" class="hint" style="color:var(--ink)"></div>
+  </section>
+  </div>
+  <section class="card c6" id="lrnDataCard">
+    <div class="hd"><h2>Dataset</h2><span class="actions" style="gap:8px"><button class="btn sm" id="lrnImport"><svg class="i"><use href="#i-upload"/></svg>Import CSV</button><input type="file" id="lrnFile" accept=".csv,text/csv,text/plain" multiple hidden><button class="btn sm" id="lrnExport"><svg class="i"><use href="#i-download"/></svg>Export CSV</button><button class="btn sm icon" id="lrnClear" title="Delete all" aria-label="Delete all data"><svg class="i"><use href="#i-trash"/></svg></button></span></div>
+    <div class="stats"><div class="stat"><small>Windows</small><b id="lrnTotal">0</b></div><div class="stat"><small>Classes ready</small><b id="lrnReady">0 of 14</b></div><div class="stat"><small>Target per class</small><b>120</b></div></div>
+    <div id="lrnTable" style="margin-top:12px"></div>
+    <div class="hint" id="lrnTotals" style="margin-top:8px"></div>
   </section>
   <section class="card c6" id="lrnDeployCard">
     <div class="hd"><h2>3 &middot; Deploy</h2></div>
@@ -537,7 +546,7 @@
     <div style="text-align:center;margin-top:8px"><button class="btn ghost" id="mdlRemove">Remove model from firmware</button></div>
     <div class="msg" id="mdlMsg"></div>
   </section>
-  <section class="card"><div class="hd"><h2>Confusion matrix (validation)</h2></div><div id="trConf" class="hint" style="overflow:auto">No results yet.</div></section>
+  <section class="card c6"><div class="hd"><h2>Confusion matrix (validation)</h2></div><div id="trConf" class="hint" style="overflow:auto">No results yet.</div></section>
 </div>
 
 <!-- ============ SERIAL MONITOR ============ -->
@@ -553,9 +562,43 @@
 
 <!-- ============ SETTINGS ============ -->
 <div class="page" id="tab-set">
-  <div class="c6 stack">
   <div class="notice info" id="setOffline"><svg class="i"><use href="#i-info"/></svg><span>Connect a device to read and change the alarm and hardware settings. Firmware and Cloud build work without one.</span></div>
-  <section class="card">
+  <div class="steps" id="cfgSteps">
+    <button data-step="cfgDevice"><span class="n">1</span>Device</button>
+    <button data-step="cfgIf"><span class="n">2</span>Interfaces &amp; pins</button>
+    <button data-step="cfgBuild"><span class="n">3</span>Build &amp; upload</button>
+  </div>
+  <section class="card c6" id="cfgDevice">
+    <div class="hd"><h2>1 &middot; Device</h2></div>
+    <p class="hint">The board the firmware is built for. Pin defaults below follow this choice.</p>
+    <div class="field"><label class="fl" for="cbBoard">Board</label><select id="cbBoard"><option value="uno">Arduino UNO / Nano (ATmega328P)</option><option value="esp32">ESP32 DevKit</option></select></div>
+  </section>
+  <section class="card c6" id="cfgRuntime">
+    <div class="hd"><h2>Runtime</h2><span class="hint">Saved to EEPROM</span></div>
+    <div class="hwrow"><div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div><button class="btn" id="hScan">Scan I&sup2;C</button></div>
+    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
+    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
+    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
+    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
+  </section>
+  <section class="card c6" id="cfgIf">
+    <div class="hd"><h2>2 &middot; Interfaces &amp; pins</h2><span class="hint">Applied at the next build</span></div>
+    <p class="hint">Untick an interface to leave it out of the firmware. Leave a pin empty to use the default shown in grey; type a number to override it. The I&sup2;C bus uses the board&rsquo;s fixed SDA/SCL pins.</p>
+    <div class="iflist">
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incDist" checked aria-label="Include Distance sensor"><span></span></span><span><b>Distance sensor</b><small>HC-SR04</small></span></label><div class="ifpins"><div><label class="fl" for="pinTrig">TRIG</label><input type="number" id="pinTrig" min="0" max="39" class="mono pinin" data-pin="trig" placeholder="&mdash;"></div><div><label class="fl" for="pinEcho">ECHO</label><input type="number" id="pinEcho" min="0" max="39" class="mono pinin" data-pin="echo" placeholder="&mdash;"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incBt" checked aria-label="Include Bluetooth"><span></span></span><span><b>Bluetooth</b><small>BLE module (SoftwareSerial)</small></span></label><div class="ifpins"><div><label class="fl" for="pinBtRx">RX</label><input type="number" id="pinBtRx" min="0" max="39" class="mono pinin" data-pin="btrx" placeholder="&mdash;"></div><div><label class="fl" for="pinBtTx">TX</label><input type="number" id="pinBtTx" min="0" max="39" class="mono pinin" data-pin="bttx" placeholder="&mdash;"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incBuz" checked aria-label="Include Buzzer"><span></span></span><span><b>Buzzer</b><small>via NPN transistor</small></span></label><div class="ifpins"><div><label class="fl" for="pinBuz">Pin</label><input type="number" id="pinBuz" min="0" max="39" class="mono pinin" data-pin="buz" placeholder="&mdash;"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incLed" checked aria-label="Include LEDs"><span></span></span><span><b>LEDs</b><small>red, green, yellow</small></span></label><div class="ifpins"><div><label class="fl" for="pinRed">Red</label><input type="number" id="pinRed" min="0" max="39" class="mono pinin" data-pin="red" placeholder="&mdash;"></div><div><label class="fl" for="pinGreen">Green</label><input type="number" id="pinGreen" min="0" max="39" class="mono pinin" data-pin="green" placeholder="&mdash;"></div><div><label class="fl" for="pinYellow">Yellow</label><input type="number" id="pinYellow" min="0" max="39" class="mono pinin" data-pin="yellow" placeholder="&mdash;"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incLcd" checked aria-label="Include LCD 16x2"><span></span></span><span><b>LCD 16x2</b><small>I&sup2;C</small></span></label><div class="ifpins"><div><label class="fl" for="hAddr">I&sup2;C address</label><input type="text" id="hAddr" class="mono pinin" value="0x27"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="incMpu" checked aria-label="Include MPU6050"><span></span></span><span><b>MPU6050</b><small>I&sup2;C IMU (shock, brake)</small></span></label><div class="ifpins"><div><label class="fl" for="mpuAddr">I&sup2;C address</label><input type="text" id="mpuAddr" class="mono pinin" placeholder="0x68"></div></div></div>
+      <div class="ifrow"><label class="ifhead"><span class="sw"><input type="checkbox" id="cbPower" aria-label="Include power module"><span></span></span><span><b>Power module</b><small>INA219 + charger</small></span></label><div class="ifpins" id="cbPowerOpts" hidden><div><label class="fl" for="cbChrg">CHRG pin</label><input type="number" id="cbChrg" min="0" max="39" class="mono pinin" placeholder="default"></div><div><label class="fl" for="cbIna">INA219 address</label><input type="text" id="cbIna" class="mono pinin" placeholder="0x40" autocomplete="off"></div><div><label class="fl" for="cbShunt">Shunt (m&Omega;)</label><input type="number" id="cbShunt" min="1" max="99999" class="mono pinin" placeholder="100"></div></div></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn ghost" id="pinReset">Reset pins to default</button></div>
+  </section>
+  <section class="card c6">
     <div class="hd"><h2>Alarm</h2><span class="hint">Saved to EEPROM</span></div>
     <div class="field"><label class="fl" for="sWarn">Warning &le;</label><div class="unitbox"><input type="number" id="sWarn" min="20" max="300"><em>cm</em></div></div>
     <div class="field"><label class="fl" for="sDanger">Danger &le;</label><div class="unitbox"><input type="number" id="sDanger" min="10" max="290"><em>cm</em></div></div>
@@ -567,26 +610,10 @@
     <div class="actions" style="margin-top:12px"><button class="btn primary" id="sSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="sRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="sReset">Restore defaults</button></div>
     <div class="msg" id="sMsg">Rule: danger + 10 &le; warning. The distance calibration is not erased by a settings reset.</div>
   </section>
-
-  <section class="card">
-    <div class="hd"><h2>Hardware</h2><span class="hint">Saved to EEPROM</span></div>
-    <div class="hwrow">
-      <div><label class="fl" for="hAddr">LCD I&sup2;C address</label><input type="text" id="hAddr" class="mono" value="0x27"></div>
-      <div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div>
-      <button class="btn" id="hScan">Scan I&sup2;C</button>
-    </div>
-    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
-    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
-    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
-    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
-    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
-  </section>
-  </div>
-  <div class="c6 stack">
-  <section class="card">
-    <div class="hd"><h2>Firmware</h2><span class="chip tag" id="buildChip" hidden></span></div>
+  <section class="card" id="cfgBuild">
+    <div class="hd"><h2>3 &middot; Build &amp; upload</h2><span class="chip tag" id="buildChip" hidden></span><span class="chip tag" id="cbChip" hidden></span></div>
+    <div class="field"><label class="fl" for="bldMode">Method</label><select id="bldMode"><option value="cloud">Cloud (GitHub Actions)</option><option value="local">Local (arduino-cli on this PC)</option></select></div>
+    <div id="bldLocal" hidden>
     <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes; it is available on every copy of this page), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
     <div id="buildUi">
       <p class="hint">Compile and upload without the Arduino IDE</p>
@@ -597,20 +624,11 @@
       <div id="buildMeta" class="hint"></div>
       <div class="log" id="buildLog" hidden></div>
     </div>
-  </section>
-
-  <section class="card" id="cloudCard">
-    <div class="hd"><h2>Cloud build</h2><span class="chip tag" id="cbChip" hidden></span></div>
+    </div>
+    <div id="cloudCard">
     <p class="hint">No local install: GitHub Actions compiles the firmware, then this page flashes it to the board over USB (desktop Chrome or Edge).</p>
     <div class="field"><label class="fl" for="cbRepo">Repository</label><input type="text" id="cbRepo" class="mono" value="SkillsHUB-Electronics/car-alarm" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label class="fl" for="cbRef">Branch</label><input type="text" id="cbRef" class="mono" value="main" autocomplete="off" spellcheck="false"></div>
-    <div class="field"><label class="fl" for="cbBoard">Board</label><select id="cbBoard"><option value="uno">Arduino UNO (CH340 / ATmega328P)</option><option value="esp32">ESP32 DevKit</option></select></div>
-    <div class="line strong"><span class="l">Power module (INA219 + charger)</span><label class="sw"><input type="checkbox" id="cbPower" aria-label="Compile the power module"><span></span></label></div>
-    <div id="cbPowerOpts" hidden>
-      <div class="field"><label class="fl" for="cbChrg">CHRG pin</label><input type="number" id="cbChrg" min="0" max="39" placeholder="default"></div>
-      <div class="field"><label class="fl" for="cbIna">INA219 address</label><input type="text" id="cbIna" class="mono" placeholder="0x40 (default)" autocomplete="off"></div>
-      <div class="field"><label class="fl" for="cbShunt">Shunt</label><div class="unitbox"><input type="number" id="cbShunt" min="1" max="99999" placeholder="100"><em>m&Omega;</em></div></div>
-    </div>
     <div class="field"><label class="fl" for="cbToken">GitHub token</label><input type="password" id="cbToken" class="mono" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;"></div>
     <div class="opts" style="margin-top:10px"><label>Remember the token in this browser<span class="sw"><input type="checkbox" id="cbRemember"><span></span></span></label></div>
     <details style="margin-top:12px"><summary class="hint" style="cursor:pointer">How to create the token</summary>
@@ -625,9 +643,8 @@
     <div class="actions" style="margin-top:12px"><button class="btn primary" id="cbBuild"><svg class="i"><use href="#i-wrench"/></svg>Build in cloud</button><button class="btn" id="cbFlash" disabled><svg class="i"><use href="#i-upload"/></svg>Flash to board</button><button class="btn" id="cbDownload" disabled><svg class="i"><use href="#i-download"/></svg>Download</button></div>
     <div class="msg" id="cbStat"></div>
     <div class="log" id="cbLog" hidden></div>
+    </div>
   </section>
-
-  </div>
 </div>
 
 <!-- ============ GUIDE ============ -->
@@ -637,7 +654,7 @@
     <ol class="qs">
       <li><span class="n">1</span><div><b>Connect</b><span>Press Connect USB or Connect BLE. Use Chrome or Edge.</span></div></li>
       <li><span class="n">2</span><div><b>Calibrate distance</b><span>Measure at least 4 points, then apply to the device.</span></div></li>
-      <li><span class="n">3</span><div><b>Set thresholds</b><span>Adjust warning, danger and shock in Settings.</span></div></li>
+      <li><span class="n">3</span><div><b>Set thresholds</b><span>Adjust warning, danger and shock in Config.</span></div></li>
       <li><span class="n">4</span><div><b>Test outputs</b><span>Check LEDs, buzzer, LCD and sensors in Test IO.</span></div></li>
       <li><span class="n">5</span><div><b>Train a driving model</b><span>Optional. Record, train, then upload in Learning.</span></div></li>
     </ol>
@@ -703,7 +720,7 @@
   </section>
   <section class="card menu">
     <a href="#" data-go="mon"><svg class="i"><use href="#i-term"/></svg>Serial Monitor<svg class="i"><use href="#i-next"/></svg></a>
-    <a href="#" data-go="set"><svg class="i"><use href="#i-sliders"/></svg>Settings<svg class="i"><use href="#i-next"/></svg></a>
+    <a href="#" data-go="set"><svg class="i"><use href="#i-sliders"/></svg>Config<svg class="i"><use href="#i-next"/></svg></a>
     <a href="#" data-go="guide"><svg class="i"><use href="#i-book"/></svg>Guide<svg class="i"><use href="#i-next"/></svg></a>
     <a href="#" data-go="about"><svg class="i"><use href="#i-info"/></svg>About<svg class="i"><use href="#i-next"/></svg></a>
     <div class="line btn-row"><span><svg class="i"><use href="#i-moon"/></svg>Dark theme</span><label class="sw"><input type="checkbox" id="themeSw" aria-label="Dark theme"><span></span></label></div>
@@ -1138,7 +1155,7 @@ function refreshButtons() {
   $('lrnRec').querySelector('use').setAttribute('href', recording ? '#i-stop' : '#i-play');
   for (const id of ['inaRead', 'inaCalV', 'inaCalI', 'inaZero', 'inaReset', 'calMeasure', 'calApply', 'calReset', 'calRefresh', 'sRead', 'sSave', 'sReset', 'hRead', 'hSave', 'hReset', 'hScan']) $(id).disabled = !on;
 }
-const TITLES = { dash: 'Dashboard', io: 'Test IO', learn: 'Learning', cal: 'Calibration', mon: 'Serial Monitor', set: 'Settings', guide: 'Guide', about: 'About', more: 'More' };
+const TITLES = { dash: 'Dashboard', io: 'Test IO', learn: 'Learning', cal: 'Calibration', mon: 'Serial Monitor', set: 'Config', guide: 'Guide', about: 'About', more: 'More' };
 const MORE_TABS = ['more', 'mon', 'set', 'guide', 'about'];
 let curTab = 'dash';
 function showTab(name) {
@@ -1305,7 +1322,7 @@ async function inaReadAll() {
     $('inaStored').textContent = 'V gain ' + (inaCal.v / 1000).toFixed(3) + ', I gain ' + (inaCal.i / 1000).toFixed(3) + ', I offset ' + inaCal.o + ' mA';
     const w = (await rpc('PWR,GET', 'RSP,PWR,')).split(',');
     if (w[2] !== '1') { $('inaNow').textContent = 'firmware built without POWER_ENABLED'; return null; }
-    if (w[3] !== '1') { $('inaNow').textContent = 'INA219 not responding (enable it in Settings, check wiring)'; return null; }
+    if (w[3] !== '1') { $('inaNow').textContent = 'INA219 not responding (enable it in Config, check wiring)'; return null; }
     const r = { mV: +w[4], mA: +w[5] };
     $('inaNow').textContent = r.mV + ' mV, ' + r.mA + ' mA';
     return r;
@@ -1520,12 +1537,12 @@ async function runBuild(upload, sketch, portAddr, status) {
   if (reopen) { await disconnect(); }
   const out = $('buildLog'); out.hidden = false; out.textContent = '';
   status && status('Running…');
-  const r = await fetch(upload ? '/api/upload' : '/api/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sketch, port: portAddr }) });
+  const r = await fetch(upload ? '/api/upload' : '/api/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sketch, port: portAddr, flags: buildFlags(true) }) });
   const rd = r.body.getReader(), dec = new TextDecoder(); let all = '';
   for (;;) { const { value, done } = await rd.read(); if (done) break; all += dec.decode(value, { stream: true }); out.textContent = all; out.scrollTop = out.scrollHeight; }
   const code = Number((/__EXIT__ (-?\d+)/.exec(all) || [])[1]);
   const size = (/Sketch uses[^\n]*\n[^\n]*/.exec(all) || [''])[0];
-  status && status(code === 0 ? 'Done. ' + size.replace(/\n/g, ' ') : 'Failed (see the build log in Settings).');
+  status && status(code === 0 ? 'Done. ' + size.replace(/\n/g, ' ') : 'Failed (see the build log in Config).');
   $('buildStat').textContent = code === 0 ? 'Done' : 'Failed';
   const bc = $('buildChip'); bc.hidden = false; bc.className = 'chip tag ' + (code === 0 ? 'safe' : 'danger'); bc.textContent = code === 0 ? 'Last build OK' : 'Build failed';
   if (reopen) { $('buildStat').textContent += ' · reconnect the port to continue'; }
@@ -1539,6 +1556,69 @@ $('cbToken').value = lsGet('cbToken', '');
 $('cbRemember').checked = !!lsGet('cbToken', '');
 for (const [id, k] of [['cbRepo', 'cbRepo'], ['cbRef', 'cbRef'], ['cbBoard', 'cbBoard']]) { const v = lsGet(k, null); if (v) $(id).value = v; }
 $('cbPower').onchange = () => { $('cbPowerOpts').hidden = !$('cbPower').checked; };
+// ---- Config: board, interfaces & pins, build method ----
+const PIN_DEFAULTS = {
+  uno:   { trig: 2, echo: 3, btrx: 10, bttx: 11, buz: 8, red: 5, green: 6, yellow: 7 },
+  esp32: { trig: 25, echo: 26, btrx: 16, bttx: 17, buz: 27, red: 32, green: 33, yellow: 14 }
+};
+const INC_IDS = ['incDist', 'incBt', 'incBuz', 'incLed', 'incLcd', 'incMpu', 'cbPower'];
+function applyIf() {
+  const d = PIN_DEFAULTS[$('cbBoard').value] || PIN_DEFAULTS.uno;
+  document.querySelectorAll('.pinin[data-pin]').forEach((el) => { el.placeholder = d[el.dataset.pin]; });
+  INC_IDS.forEach((id) => { const row = $(id).closest('.ifrow'); row.classList.toggle('off', !$(id).checked); });
+  $('cbPowerOpts').hidden = !$('cbPower').checked;
+  $('bldLocalNote').hidden = $('cbBoard').value === 'uno';
+}
+// Build options for the compiler, from the Config page: ["PIN_TRIG=4", "INC_LCD=0", ...].
+const PIN_MACRO = { trig: 'PIN_TRIG', echo: 'PIN_ECHO', btrx: 'PIN_BT_RX', bttx: 'PIN_BT_TX', buz: 'PIN_BUZZER', red: 'PIN_LED_RED', green: 'PIN_LED_GREEN', yellow: 'PIN_LED_YELLOW' };
+const INC_MACRO = { incDist: 'INC_DIST', incBt: 'INC_BT', incBuz: 'INC_BUZZER', incLed: 'INC_LED', incLcd: 'INC_LCD', incMpu: 'INC_MPU' };
+function buildFlags(withPower) {
+  const f = [];
+  const addr = /^(0x[0-9a-fA-F]{1,2}|[0-9]{1,3})$/;
+  const pins = { trig: 'incDist', echo: 'incDist', btrx: 'incBt', bttx: 'incBt', buz: 'incBuz', red: 'incLed', green: 'incLed', yellow: 'incLed' };
+  for (const id in INC_MACRO) if (!$(id).checked) f.push(INC_MACRO[id] + '=0');
+  document.querySelectorAll('.pinin[data-pin]').forEach((el) => {
+    const v = el.value.trim();
+    if (!v || !$(pins[el.dataset.pin]).checked) return;
+    if (!/^[0-9]{1,2}$/.test(v)) throw new Error('Pin must be a number: ' + v);
+    f.push(PIN_MACRO[el.dataset.pin] + '=' + v);
+  });
+  const lcd = $('hAddr').value.trim().toLowerCase(), mpu = $('mpuAddr').value.trim();
+  if ($('incLcd').checked && lcd && lcd !== '0x27') { if (!addr.test(lcd)) throw new Error('Bad LCD address: ' + lcd); f.push('LCD_ADDR=' + lcd); }
+  if ($('incMpu').checked && mpu && mpu.toLowerCase() !== '0x68') { if (!addr.test(mpu)) throw new Error('Bad MPU address: ' + mpu); f.push('MPU_ADDR=' + mpu); }
+  if (withPower && $('cbPower').checked) {
+    f.push('POWER_ENABLED=1');
+    for (const [id, m] of [['cbChrg', 'PIN_CHRG'], ['cbIna', 'INA_ADDR'], ['cbShunt', 'INA_SHUNT_MOHM']]) { const v = $(id).value.trim(); if (v) f.push(m + '=' + v); }
+  }
+  return f;
+}
+function saveIf() {
+  const o = { inc: {}, pins: {}, mpu: $('mpuAddr').value };
+  INC_IDS.forEach((id) => { o.inc[id] = $(id).checked; });
+  document.querySelectorAll('.pinin[data-pin]').forEach((el) => { o.pins[el.id] = el.value; });
+  lsSet('cfgIf', o); applyIf();
+}
+(function () {
+  const o = lsGet('cfgIf', null);
+  if (o) {
+    INC_IDS.forEach((id) => { if (o.inc && id in o.inc) $(id).checked = o.inc[id]; });
+    Object.keys(o.pins || {}).forEach((id) => { if ($(id)) $(id).value = o.pins[id]; });
+    if (o.mpu) $('mpuAddr').value = o.mpu;
+  }
+  const note = document.createElement('p'); note.className = 'hint'; note.id = 'bldLocalNote'; note.hidden = true;
+  note.textContent = 'Local build supports Arduino UNO / Nano only. Use Cloud for ESP32.';
+  $('bldLocal').prepend(note);
+  INC_IDS.forEach((id) => $(id).addEventListener('change', saveIf));
+  document.querySelectorAll('.pinin').forEach((el) => el.addEventListener('input', saveIf));
+  $('cbBoard').addEventListener('change', () => { lsSet('cbBoard', $('cbBoard').value); applyIf(); });
+  $('pinReset').onclick = () => { document.querySelectorAll('.pinin[data-pin]').forEach((el) => { el.value = ''; }); $('mpuAddr').value = ''; saveIf(); };
+  $('bldMode').onchange = () => { lsSet('bldMode', $('bldMode').value); applyMode(); };
+  applyIf();
+})();
+function applyMode() {
+  const local = $('bldMode').value === 'local';
+  $('bldLocal').hidden = !local; $('cloudCard').hidden = local;
+}
 $('cbRemember').onchange = () => { if (!$('cbRemember').checked) lsSet('cbToken', ''); };
 const cbSay = (t) => { $('cbStat').textContent = t; };
 const cbLog = (t) => { const l = $('cbLog'); l.hidden = false; l.textContent += t + '\n'; l.scrollTop = l.scrollHeight; };
@@ -1550,6 +1630,7 @@ $('cbBuild').onclick = async () => {
   lsSet('cbRepo', repo); lsSet('cbRef', ref); lsSet('cbBoard', board); lsSet('cbToken', $('cbRemember').checked ? token : '');
   const inputs = { board, power_enabled: $('cbPower').checked ? '1' : '0' };
   if ($('cbPower').checked) { inputs.pin_chrg = $('cbChrg').value.trim(); inputs.ina_addr = $('cbIna').value.trim(); inputs.ina_shunt_mohm = $('cbShunt').value.trim(); }
+  inputs.build_flags = buildFlags(false).join(' ');
   cbResult = null; $('cbFlash').disabled = $('cbDownload').disabled = $('cbBuild').disabled = true;
   $('cbLog').textContent = ''; $('cbChip').hidden = true;
   try {
@@ -1617,7 +1698,7 @@ $('connArrow').onclick = (e) => { e.stopPropagation(); const open = $('connMenu'
 $('connMenu').querySelectorAll('button').forEach((b) => { b.onclick = () => { try { localStorage.setItem('connMode', b.dataset.mode); } catch (e) {} closeConnMenu(); b.dataset.mode === 'ble' ? connectBle() : connect(); }; });
 document.addEventListener('click', (e) => { if (!$('connGroup').contains(e.target)) closeConnMenu(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('connMenu').hidden) { closeConnMenu(); $('connArrow').focus(); } });
-setConn(false, 'Not connected'); resetLive(); renderCal(); renderDataset(); updSize(); setScale(); initBuild();
+setConn(false, 'Not connected'); resetLive(); renderCal(); renderDataset(); updSize(); setScale(); initBuild().then(() => { $('bldMode').value = lsGet('bldMode', helperOnline ? 'local' : 'cloud'); applyMode(); applyIf(); });
 </script>
 </body>
 </html>

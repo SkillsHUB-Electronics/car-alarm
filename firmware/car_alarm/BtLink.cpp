@@ -8,6 +8,9 @@ BtLink::BtLink() : bt_(PIN_BT_RX, PIN_BT_TX), out_(bt_) {}
 #endif
 
 void BtLink::begin() {
+#if !INC_BT
+  return;  // no BLE module in this build: USB serial only
+#endif
 #if defined(ARDUINO_ARCH_ESP32)
   bt_.begin(9600, SERIAL_8N1, PIN_BT_RX, PIN_BT_TX);  // BLE module default data baud rate
 #else

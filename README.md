@@ -25,7 +25,7 @@ This is an assistive device, **not a safety system**; do not rely on it to preve
 | `docs/` | Test evidence, wiring, logo, checklist |
 | `.github/workflows/` | `ci.yml` (tests), `pages.yml` (deploys the console to GitHub Pages), `release.yml` (firmware hex + APK + console zip) |
 
-**Web console:** <https://skillshub-electronics.github.io/car-alarm/> (after the repository is published and *Settings → Pages → Source: GitHub Actions* is enabled). It uses Web Serial (Chrome/Edge desktop). Compile & Upload and writing `model_data.h` need the local helper server (`console/server`); without it, the hosted page has a **Cloud build** (Settings): GitHub Actions compiles `build-firmware.yml` and the page flashes the result over Web Serial (UNO and ESP32; needs your own fine-grained GitHub token, see [console/README.md](console/README.md)).
+**Web console:** <https://skillshub-electronics.github.io/car-alarm/> (after the repository is published and *Settings → Pages → Source: GitHub Actions* is enabled). It uses Web Serial (Chrome/Edge desktop). Compile & Upload and writing `model_data.h` need the local helper server (`console/server`); without it, the hosted page has a **Cloud build** (Config): GitHub Actions compiles `build-firmware.yml` and the page flashes the result over Web Serial (UNO and ESP32; needs your own fine-grained GitHub token, see [console/README.md](console/README.md)).
 
 **Releases:** push a tag such as `v2.1.0` (`git tag v2.1.0 && git push --tags`); `release.yml` builds the firmware, the APK (debug-signed) and the console zip and attaches them to a GitHub Release. License: MIT ([LICENSE](LICENSE)).
 

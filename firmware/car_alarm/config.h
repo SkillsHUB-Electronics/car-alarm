@@ -6,31 +6,61 @@
 #define FW_VERSION "2.1"
 
 // ---- Pins -----------------------------------------------------------------
+// Every pin and I2C address can be overridden at build time with a -D flag (the web console's Config page
+// does this), e.g. -DPIN_TRIG=4. Defaults per board:
 #if defined(ARDUINO_ARCH_ESP32)
 // ESP32 DevKit (30/38-pin): avoids strapping pins (0, 2, 5, 12, 15) and input-only pins (34-39).
 // I2C uses the default Wire pins SDA 21 / SCL 22. HC-SR04 ECHO outputs 5 V: divide it to 3.3 V (e.g. 1k/2k).
-constexpr uint8_t PIN_TRIG = 25;
-constexpr uint8_t PIN_ECHO = 26;
-constexpr uint8_t PIN_BT_RX = 16;  // ESP32 receives (HM-10 TX)
-constexpr uint8_t PIN_BT_TX = 17;  // ESP32 transmits (HM-10 RX; 3.3 V logic, no divider needed)
-constexpr uint8_t PIN_BUZZER = 27;  // via NPN transistor
-constexpr uint8_t PIN_LED_RED = 32;
-constexpr uint8_t PIN_LED_GREEN = 33;
-constexpr uint8_t PIN_LED_YELLOW = 14;
+#define PIN_TRIG_DEFAULT 25
+#define PIN_ECHO_DEFAULT 26
+#define PIN_BT_RX_DEFAULT 16     // ESP32 receives (HM-10 TX)
+#define PIN_BT_TX_DEFAULT 17     // ESP32 transmits (HM-10 RX; 3.3 V logic, no divider needed)
+#define PIN_BUZZER_DEFAULT 27    // via NPN transistor
+#define PIN_LED_RED_DEFAULT 32
+#define PIN_LED_GREEN_DEFAULT 33
+#define PIN_LED_YELLOW_DEFAULT 14
 #else
-constexpr uint8_t PIN_TRIG = 2;
-constexpr uint8_t PIN_ECHO = 3;
-constexpr uint8_t PIN_BT_RX = 10;  // Arduino receives (HC-05 TX)
-constexpr uint8_t PIN_BT_TX = 11;  // Arduino transmits (HC-05 RX, via 1k/2k divider)
-constexpr uint8_t PIN_BUZZER = 8;  // via NPN transistor
-constexpr uint8_t PIN_LED_RED = 5;
-constexpr uint8_t PIN_LED_GREEN = 6;
-constexpr uint8_t PIN_LED_YELLOW = 7;
+#define PIN_TRIG_DEFAULT 2
+#define PIN_ECHO_DEFAULT 3
+#define PIN_BT_RX_DEFAULT 10     // Arduino receives (HC-05 TX)
+#define PIN_BT_TX_DEFAULT 11     // Arduino transmits (HC-05 RX, via 1k/2k divider)
+#define PIN_BUZZER_DEFAULT 8     // via NPN transistor
+#define PIN_LED_RED_DEFAULT 5
+#define PIN_LED_GREEN_DEFAULT 6
+#define PIN_LED_YELLOW_DEFAULT 7
+#endif
+#ifndef PIN_TRIG
+#define PIN_TRIG PIN_TRIG_DEFAULT
+#endif
+#ifndef PIN_ECHO
+#define PIN_ECHO PIN_ECHO_DEFAULT
+#endif
+#ifndef PIN_BT_RX
+#define PIN_BT_RX PIN_BT_RX_DEFAULT
+#endif
+#ifndef PIN_BT_TX
+#define PIN_BT_TX PIN_BT_TX_DEFAULT
+#endif
+#ifndef PIN_BUZZER
+#define PIN_BUZZER PIN_BUZZER_DEFAULT
+#endif
+#ifndef PIN_LED_RED
+#define PIN_LED_RED PIN_LED_RED_DEFAULT
+#endif
+#ifndef PIN_LED_GREEN
+#define PIN_LED_GREEN PIN_LED_GREEN_DEFAULT
+#endif
+#ifndef PIN_LED_YELLOW
+#define PIN_LED_YELLOW PIN_LED_YELLOW_DEFAULT
 #endif
 
 // ---- I2C addresses --------------------------------------------------------
-constexpr uint8_t LCD_ADDR = 0x27;
-constexpr uint8_t MPU_ADDR = 0x68;
+#ifndef LCD_ADDR
+#define LCD_ADDR 0x27
+#endif
+#ifndef MPU_ADDR
+#define MPU_ADDR 0x68
+#endif
 
 // ---- Distance (D5: defaults; runtime values live in Settings/EEPROM) --------------------------------------
 // NORMAL > 100 cm, WARN 50..100 cm, DANGER <= 50 cm.

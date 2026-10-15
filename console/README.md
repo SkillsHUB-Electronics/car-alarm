@@ -4,7 +4,7 @@ Web console for the Car Distance & Shock Alarm: **monitoring** (state, distance,
 
 The page is purely static (`index.html` + `ml.js` + `cloud.js`, no dependencies).
 
-Layout: a 244 px sidebar on desktop; below 760 px the sidebar becomes a bottom tab bar (Dashboard, Test IO, Learning, Calibrate, More) and Serial Monitor, Settings, Guide and About move under *More*. Light and dark themes follow the design tokens at the top of `index.html` (`:root` and `:root[data-theme=dark]`); the theme choice is remembered per browser. Fonts (Barlow, Barlow Condensed, JetBrains Mono) load from Google Fonts and fall back to system fonts offline.
+Layout: a 244 px sidebar on desktop; below 760 px the sidebar becomes a bottom tab bar (Dashboard, Test IO, Learning, Calibrate, More) and Serial Monitor, Config, Guide and About move under *More*. Light and dark themes follow the design tokens at the top of `index.html` (`:root` and `:root[data-theme=dark]`); the theme choice is remembered per browser. Fonts (Barlow, Barlow Condensed, JetBrains Mono) load from Google Fonts and fall back to system fonts offline.
 
 ## Two ways to use it
 
@@ -21,9 +21,15 @@ Hosted: <https://skillshub-electronics.github.io/car-alarm/>
 
 Browser for USB: **desktop Chrome or Edge** (Web Serial). Close the Arduino IDE Serial Monitor first; a port can only be used by one program at a time.
 
+## Config page
+
+Config (formerly Settings) follows the order of a build: **1 Device** (UNO / Nano or ESP32), **2 Interfaces & pins** (tick an interface to include it, leave a pin empty for the board default or type a number; I²C addresses for the LCD and MPU6050), **3 Build & upload** (method: Cloud or Local). **Alarm** and **Runtime** (LCD, backlight, charger, INA, I²C scan) are stored in the device EEPROM and apply immediately.
+
+Pins, I²C addresses and interface switches are **build-time**: the page sends them as `NAME=VALUE` pairs (`PIN_TRIG`, `PIN_ECHO`, `PIN_BT_RX`, `PIN_BT_TX`, `PIN_BUZZER`, `PIN_LED_RED/GREEN/YELLOW`, `LCD_ADDR`, `MPU_ADDR`, `INC_DIST/BT/BUZZER/LED/LCD/MPU`) to the local helper or the Cloud workflow, which validate them against a whitelist and pass them to the compiler as `-D` flags. They take effect after the next compile and upload. A disabled interface (`INC_*=0`) is never initialised and does nothing; the code stays in the binary (small flash saving only).
+
 ## Cloud build (hosted page, no local install)
 
-GitHub Pages is static, so it cannot run a compiler. Settings → **Cloud build** asks GitHub Actions to compile instead:
+GitHub Pages is static, so it cannot run a compiler. Config → **Build & upload → Cloud** asks GitHub Actions to compile instead:
 
 1. The page dispatches `.github/workflows/build-firmware.yml` (options: board `uno`/`esp32`, power module, CHRG pin, INA219 address and shunt, the same switches as `firmware/car_alarm/config_user.h`).
 2. It polls the run, downloads the `firmware` artifact (`.hex` for the UNO, a merged `.bin` for the ESP32) and unzips it in the browser.
