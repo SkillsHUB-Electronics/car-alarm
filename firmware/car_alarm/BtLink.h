@@ -1,5 +1,11 @@
 #pragma once
+#if defined(ARDUINO_ARCH_ESP32)
+#include <HardwareSerial.h>
+using BtSerial = HardwareSerial;  // ESP32: UART2 on PIN_BT_RX/PIN_BT_TX
+#else
 #include <SoftwareSerial.h>
+using BtSerial = SoftwareSerial;
+#endif
 #include "config.h"
 #include "types.h"
 
@@ -39,7 +45,7 @@ class BtLink {
  private:
   void sendDistance(DistLevel level, int16_t cm);
 
-  SoftwareSerial bt_;
+  BtSerial bt_;
   TeePrint out_;
   unsigned long lastDist_ = 0;
   DistLevel lastLevel_ = DistLevel::NORMAL;

@@ -193,6 +193,10 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
     return res.end(fs.readFileSync(path.join(WEB, 'ml.js')));
   }
+  if (req.method === 'GET' && url === '/cloud.js') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+    return res.end(fs.readFileSync(path.join(WEB, 'cloud.js')));
+  }
   if (req.method === 'GET' && url === '/api/model') {
     const text = fs.existsSync(MODEL_FILE) ? fs.readFileSync(MODEL_FILE, 'utf8') : '';
     return json(res, 200, { present: /#define MODEL_PRESENT 1/.test(text), bytes: text.length });

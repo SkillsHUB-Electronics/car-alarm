@@ -1,6 +1,6 @@
 // Offline shell: the console is static, so cache it and serve it network-first.
-const CACHE = 'car-alarm-console-v3';
-const FILES = ['./', 'index.html', 'ml.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'car-alarm-console-v4';
+const FILES = ['./', 'index.html', 'ml.js', 'cloud.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

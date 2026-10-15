@@ -98,7 +98,7 @@ Owner request (12/10/2026): since the Serial Monitor can send commands, Bluetoot
 | D17 | Settings | Distance thresholds, shock/brake thresholds, brake duration, hold time, buzzer on/off stored in EEPROM; defaults = `config.h` | ✅ default |
 | D19 | Hardware settings | I2C LCD address (8..119), LCD on/off, backlight stored in EEPROM and applied immediately; battery charger and INA slots are only stored (no function yet) so the UI is ready for future hardware | ✅ default |
 | D20 | Live IMU | The dashboard uses `DBG,1` (0.5 s, ax/ay/az in mg) to show the IMU; the app enables it only while the main screen is open | ✅ default |
-| D18 | Web | `console/` gets matching menus; Web Serial (Chrome/Edge); compile/flash still via `arduino-cli` in the local helper `console/server/server.js` | ✅ default |
+| D18 | Web | `console/` gets matching menus; Web Serial (Chrome/Edge); compile/flash via `arduino-cli` in the local helper `console/server/server.js`, or on the hosted page via Cloud build (GitHub Actions `build-firmware.yml` compiles, the browser flashes with Web Serial; 15/10/2026) | ✅ default |
 
 **Honest limitation:** the IMU does not measure speed; the speed classes are only an estimate from vibration/shock patterns and depend heavily on the car, tyres and road. Accuracy must be proven with real data. Without road data the model has only been tested with synthetic/bench data.
 

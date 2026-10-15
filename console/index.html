@@ -515,7 +515,7 @@
 <div class="page" id="tab-set">
   <section class="card c6">
     <div class="hd"><h2>Firmware</h2><span class="chip tag" id="buildChip" hidden></span></div>
-    <div id="buildOffline" class="hint" hidden>Compile &amp; upload needs the local helper server (arduino-cli): run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
+    <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
     <div id="buildUi">
       <p class="hint">Compile and upload without the Arduino IDE</p>
       <div class="field"><label class="fl" for="sketchSel">Sketch</label><select id="sketchSel" class="mono"></select></div>
@@ -525,6 +525,34 @@
       <div id="buildMeta" class="hint"></div>
       <div class="log" id="buildLog" hidden></div>
     </div>
+  </section>
+
+  <section class="card c6" id="cloudCard">
+    <div class="hd"><h2>Cloud build</h2><span class="chip tag" id="cbChip" hidden></span></div>
+    <p class="hint">No local install: GitHub Actions compiles the firmware, then this page flashes it to the board over USB (desktop Chrome or Edge).</p>
+    <div class="field"><label class="fl" for="cbRepo">Repository</label><input type="text" id="cbRepo" class="mono" value="SkillsHUB-Electronics/car-alarm" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label class="fl" for="cbRef">Branch</label><input type="text" id="cbRef" class="mono" value="main" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label class="fl" for="cbBoard">Board</label><select id="cbBoard"><option value="uno">Arduino UNO (CH340 / ATmega328P)</option><option value="esp32">ESP32 DevKit</option></select></div>
+    <div class="line strong"><span class="l">Power module (INA219 + charger)</span><label class="sw"><input type="checkbox" id="cbPower" aria-label="Compile the power module"><span></span></label></div>
+    <div id="cbPowerOpts" hidden>
+      <div class="field"><label class="fl" for="cbChrg">CHRG pin</label><input type="number" id="cbChrg" min="0" max="39" placeholder="default"></div>
+      <div class="field"><label class="fl" for="cbIna">INA219 address</label><input type="text" id="cbIna" class="mono" placeholder="0x40 (default)" autocomplete="off"></div>
+      <div class="field"><label class="fl" for="cbShunt">Shunt</label><div class="unitbox"><input type="number" id="cbShunt" min="1" max="99999" placeholder="100"><em>m&Omega;</em></div></div>
+    </div>
+    <div class="field"><label class="fl" for="cbToken">GitHub token</label><input type="password" id="cbToken" class="mono" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;"></div>
+    <div class="opts" style="margin-top:10px"><label>Remember the token in this browser<span class="sw"><input type="checkbox" id="cbRemember"><span></span></span></label></div>
+    <details style="margin-top:12px"><summary class="hint" style="cursor:pointer">How to create the token</summary>
+      <ol class="hint" style="margin:8px 0 0;padding-left:20px">
+        <li>GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens &rarr; <b>Fine-grained tokens</b> &rarr; Generate new token.</li>
+        <li>Repository access: <b>Only select repositories</b> &rarr; this repository only.</li>
+        <li>Permissions &rarr; Repository &rarr; <b>Actions: Read and write</b>. Nothing else.</li>
+        <li>Short expiry (e.g. 30 days). Paste the token above.</li>
+      </ol>
+      <p class="hint" style="margin:8px 0 0">The token is sent only to <code>api.github.com</code>. It is never stored on the server. If you tick <i>Remember</i> it is saved in this browser&rsquo;s local storage, readable by any script on this page: leave it unticked on a shared computer and revoke the token when you are done.</p>
+    </details>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="cbBuild"><svg class="i"><use href="#i-wrench"/></svg>Build in cloud</button><button class="btn" id="cbFlash" disabled><svg class="i"><use href="#i-upload"/></svg>Flash to board</button><button class="btn" id="cbDownload" disabled><svg class="i"><use href="#i-download"/></svg>Download</button></div>
+    <div class="msg" id="cbStat"></div>
+    <div class="log" id="cbLog" hidden></div>
   </section>
 
   <section class="card c6">
@@ -649,6 +677,7 @@
 </nav>
 
 <script src="./ml.js"></script>
+<script src="./cloud.js"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -1414,7 +1443,7 @@ async function initBuild() {
   try {
     const st = await api('/api/status');
     if (!st.cli) throw new Error('arduino-cli not found');
-    sketches = st.sketches; helperOnline = true;
+    sketches = st.sketches; helperOnline = true; $('cloudCard').hidden = true;
     $('sketchSel').innerHTML = ''; sketches.forEach((s) => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.id; $('sketchSel').appendChild(o); });
     $('sketchSel').value = 'firmware/car_alarm';
     $('buildMeta').textContent = 'arduino-cli ' + (st.version || '') + ' · ' + st.fqbn;
@@ -1438,6 +1467,61 @@ async function runBuild(upload, sketch, portAddr, status) {
   if (reopen) { $('buildStat').textContent += ' · reconnect the port to continue'; }
   return code === 0;
 }
+// ---------------- Cloud build (GitHub Actions) ----------------
+// Hosted on GitHub Pages there is no compiler, so GitHub Actions compiles and this page flashes the result.
+const CB = window.CloudBuild;
+let cbResult = null;   // { board, files }
+$('cbToken').value = lsGet('cbToken', '');
+$('cbRemember').checked = !!lsGet('cbToken', '');
+for (const [id, k] of [['cbRepo', 'cbRepo'], ['cbRef', 'cbRef'], ['cbBoard', 'cbBoard']]) { const v = lsGet(k, null); if (v) $(id).value = v; }
+$('cbPower').onchange = () => { $('cbPowerOpts').hidden = !$('cbPower').checked; };
+$('cbRemember').onchange = () => { if (!$('cbRemember').checked) lsSet('cbToken', ''); };
+const cbSay = (t) => { $('cbStat').textContent = t; };
+const cbLog = (t) => { const l = $('cbLog'); l.hidden = false; l.textContent += t + '\n'; l.scrollTop = l.scrollHeight; };
+function cbChip(ok, text) { const c = $('cbChip'); c.hidden = false; c.className = 'chip tag ' + (ok ? 'safe' : 'danger'); c.textContent = text; }
+$('cbBuild').onclick = async () => {
+  const token = $('cbToken').value.trim(), repo = $('cbRepo').value.trim(), ref = $('cbRef').value.trim() || 'main', board = $('cbBoard').value;
+  if (!token) return cbSay('Paste a GitHub token first (see “How to create the token”).');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return cbSay('Repository must look like owner/name.');
+  lsSet('cbRepo', repo); lsSet('cbRef', ref); lsSet('cbBoard', board); lsSet('cbToken', $('cbRemember').checked ? token : '');
+  const inputs = { board, power_enabled: $('cbPower').checked ? '1' : '0' };
+  if ($('cbPower').checked) { inputs.pin_chrg = $('cbChrg').value.trim(); inputs.ina_addr = $('cbIna').value.trim(); inputs.ina_shunt_mohm = $('cbShunt').value.trim(); }
+  cbResult = null; $('cbFlash').disabled = $('cbDownload').disabled = $('cbBuild').disabled = true;
+  $('cbLog').textContent = ''; $('cbChip').hidden = true;
+  try {
+    cbSay('Requesting the build…');
+    const run = await CB.startBuild({ token, repo, ref, inputs });
+    cbLog('Run: ' + run.html_url);
+    let last = '';
+    const done = await CB.waitForRun({ token, repo, runId: run.id, onStatus: (r) => { const t = r.status + (r.conclusion ? ' · ' + r.conclusion : ''); if (t !== last) { last = t; cbSay('GitHub Actions: ' + t); cbLog(t); } } });
+    if (done.conclusion !== 'success') { cbChip(false, 'Build failed'); return cbSay('Build failed (' + done.conclusion + '). Open the run for the compiler output: ' + done.html_url); }
+    cbSay('Downloading the result…');
+    const files = await CB.downloadResult({ token, repo, runId: run.id });
+    const size = files['size.txt'] ? new TextDecoder().decode(files['size.txt']).trim().replace(/\n/g, ' · ') : '';
+    cbResult = { board, files }; $('cbFlash').disabled = $('cbDownload').disabled = false;
+    cbChip(true, 'Build OK'); cbSay('Build OK. ' + size + ' Connect the board and press Flash.');
+  } catch (e) { cbChip(false, 'Error'); cbSay(e.message); }
+  $('cbBuild').disabled = false;
+};
+$('cbDownload').onclick = () => {
+  if (!cbResult) return;
+  const name = cbResult.board === 'esp32' ? 'firmware.bin' : 'firmware.hex';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([cbResult.files[name]])); a.download = 'car_alarm_' + cbResult.board + name.slice(name.indexOf('.')); a.click(); URL.revokeObjectURL(a.href);
+};
+$('cbFlash').onclick = async () => {
+  if (!cbResult) return;
+  if (!('serial' in navigator)) return cbSay('Flashing needs Web Serial: use desktop Chrome or Edge.');
+  $('cbFlash').disabled = true;
+  try {
+    if (connected) await disconnect();   // the port is needed exclusively
+    cbSay('Choose the board’s serial port…');
+    const prog = (d, t) => cbSay('Flashing… ' + Math.round(100 * d / t) + '%');
+    if (cbResult.board === 'esp32') await CB.flashEsp32InBrowser(cbResult.files['firmware.bin'], prog, cbLog);
+    else await CB.flashUnoInBrowser(new TextDecoder().decode(cbResult.files['firmware.hex']), prog);
+    cbSay('Flashed. Press Connect USB to use the board.');
+  } catch (e) { cbSay('Flash failed: ' + e.message); }
+  $('cbFlash').disabled = false;
+};
 $('btnPorts').onclick = loadPorts; $('lrnPorts').onclick = loadPorts;
 $('btnCompile').onclick = () => runBuild(false, $('sketchSel').value, '', (t) => { $('buildStat').textContent = t; }).catch((e) => { $('buildStat').textContent = e.message; });
 $('btnUpload').onclick = () => runBuild(true, $('sketchSel').value, $('portSel').value, (t) => { $('buildStat').textContent = t; }).catch((e) => { $('buildStat').textContent = e.message; });
