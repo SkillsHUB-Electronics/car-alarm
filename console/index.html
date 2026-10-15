@@ -15,7 +15,7 @@
 <style>
   /* ---------- design tokens ---------- */
   :root {
-    --page:#ECEFF3; --surface:#FFFFFF; --line:#DCE2E9; --ink:#0F1B2A; --muted:#5E6B7C; --faint:#8794A5;
+    --page:#ECEFF3; --surface:#FFFFFF; --line:#DCE2E9; --ink:#0F1B2A; --muted:#5E6B7C; --faint:#6B788B;
     --side:#0D1621; --side-ink:#C9D3E0; --side-line:#1B2837; --side-active:#16253A;
     --cobalt:#2457F5; --cobalt-soft:#E4EBFE; --cobalt-ink:#1B3FB8;
     --safe:#16996A; --safe-soft:#DDF3E9; --safe-ink:#0F6B49;
@@ -27,7 +27,7 @@
     --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   }
   :root[data-theme=dark] {
-    --page:#080F18; --surface:#111C29; --line:#1F2D3F; --ink:#E8EEF5; --muted:#93A1B5; --faint:#6B7A8F;
+    --page:#080F18; --surface:#111C29; --line:#1F2D3F; --ink:#E8EEF5; --muted:#93A1B5; --faint:#8392A7;
     --side:#0A111B; --side-active:#14223A;
     --cobalt:#4E7BFF; --cobalt-soft:#1A2A52; --cobalt-ink:#9DB6FF;
     --safe:#2BB885; --safe-soft:#10372B; --safe-ink:#4FD3A0;
@@ -63,7 +63,7 @@
   .top .mlogo { display:none; width:34px; height:34px; border-radius:9px; }
   .top h1 { margin:0; font:600 23px var(--font); letter-spacing:-.005em; flex:1; }
   .top .bar { display:flex; gap:10px; align-items:center; }
-  main { padding:28px; max-width:1500px; }
+  main { padding:24px; }
   .page { display:none; }
   .page.active { display:grid; gap:16px; grid-template-columns:repeat(12,minmax(0,1fr)); align-items:start; }
   .page > * { grid-column:1/-1; min-width:0; }
@@ -181,7 +181,19 @@
   .ev { display:grid; grid-template-columns:70px 112px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
   .ev:last-child { border-bottom:0; }
   .ev time { color:var(--muted); font-variant-numeric:tabular-nums; } .ev .k { color:var(--muted); }
-  #events { max-height:340px; overflow:auto; }
+  #tab-dash.active { align-items:stretch; }
+  .fixh { height:400px; display:flex; flex-direction:column; }
+  .fixh > .hd { flex:none; }
+  .fixh #events, .fixh #dpWrap { flex:1; min-height:0; overflow:auto; }
+  .fixh .empty { padding:56px 12px; }
+  .evauto { cursor:pointer; user-select:none; gap:6px; } .evauto input { width:auto; height:auto; margin:0; accent-color:var(--cobalt); }
+  .chartwrap canvas { height:150px; }
+  .cbtn { position:relative; display:inline-flex; }
+  .cbtn .main { border-radius:9px 0 0 9px; } .cbtn .arrow { width:36px; padding:0; border-radius:0 9px 9px 0; border-left:1px solid rgba(255,255,255,.35); }
+  .cmenu { position:absolute; right:0; top:calc(100% + 6px); min-width:240px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:6px; box-shadow:0 10px 30px rgba(8,15,24,.18); z-index:30; }
+  .cmenu button { display:flex; gap:12px; align-items:center; width:100%; text-align:left; border:0; background:transparent; color:var(--ink); padding:10px 12px; border-radius:8px; cursor:pointer; font:600 14.5px var(--font); }
+  .cmenu button:hover, .cmenu button:focus-visible { background:var(--cobalt-soft); }
+  .cmenu small { display:block; color:var(--muted); font-weight:500; font-size:12.5px; }
 
   /* ---------- test io ---------- */
   .led { width:20px; height:20px; border-radius:50%; background:var(--track); border:1px solid var(--line); flex:none; transition:all .15s; }
@@ -226,20 +238,32 @@
   .menu a .i:first-child { color:var(--muted); width:22px; height:22px; } .menu a .i:last-child { margin-left:auto; color:var(--faint); }
   .menu .line.btn-row { justify-content:space-between; border-bottom:0; } .menu .line.btn-row > span { display:flex; gap:14px; align-items:center; } .menu .line.btn-row .i { color:var(--muted); width:22px; height:22px; }
 
+  .stack { display:grid; gap:16px; align-content:start; }
+  .stack > .notice { margin-bottom:0; }
+  .hwrow { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+  .line > .l { flex-wrap:wrap; row-gap:4px; }
+  .banner .cta { display:none; gap:10px; }
+  button:focus-visible,.tabs button:focus-visible,.quick button:focus-visible,.steps button:focus-visible,summary:focus-visible,a:focus-visible { outline:2px solid var(--cobalt); outline-offset:2px; }
+  .card h2 { letter-spacing:-.005em; }
+  .btn:active:not(:disabled) { transform:translateY(1px); }
+
   .tabs { display:none; }
 
   /* ---------- responsive ---------- */
   @media (max-width:1100px) { .prox { grid-template-columns:1fr; } .c4,.c5,.c6,.c7,.c8 { grid-column:1/-1 !important; } .banner .facts div { padding:0 16px; } }
   @media (max-width:760px) {
     .app { grid-template-columns:1fr; } aside { display:none; }
-    .top { height:60px; padding:0 16px; } .top .mlogo { display:block; } .top h1 { font-size:20px; } .top .bar .btn:not(.keep) { display:none; }
+    .top { height:60px; padding:0 16px; } .top .mlogo { display:block; } .top h1 { font-size:20px; } .top .bar .btn:not(.keep), .top .bar .cbtn { display:none; }
     .chip .full { display:none; } .chip .short { display:inline; }
     main { padding:16px 16px 96px; }
     .card { padding:18px; } .card > .hd { margin-bottom:12px; }
     .banner { padding:16px 18px; gap:14px; } .banner .word { font-size:34px; } .banner .facts { width:100%; border-top:1px solid var(--line); padding-top:12px; } .banner .facts div { flex:1; padding:0; min-width:0; } .banner .facts div + div { padding-left:16px; }
     .banner .facts b { font-size:16px; } .readout { font-size:76px; } .shock { grid-template-columns:1fr; } .gread { font-size:56px; }
     .ev { grid-template-columns:62px 1fr auto; } .ev .k { display:none; } .ev .tx { grid-column:1/-1; order:5; }
-    .term { height:48vh; }
+    .term { height:48vh; } .fixh { height:360px; }
+    .banner .cta { display:grid; grid-template-columns:1fr 1fr; width:100%; } .banner .cta .btn { width:100%; } .banner .cta .btn:only-child { grid-column:1/-1; }
+    .hwrow { grid-template-columns:1fr 1fr; } .hwrow .btn { grid-column:1/-1; }
+    .actions .btn { flex:1 1 auto; } .actions .btn.ghost { flex:0 0 auto; }
     .tabs { display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:10; background:var(--surface); border-top:1px solid var(--line); padding:0 4px env(safe-area-inset-bottom); }
     .tabs button { position:relative; border:0; background:transparent; color:var(--faint); height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font:500 12.5px var(--font); cursor:pointer; }
     .tabs button .i { width:22px; height:22px; }
@@ -275,6 +299,7 @@
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
   <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></symbol>
 </defs></svg>
@@ -304,8 +329,14 @@
   <div class="bar">
     <span class="chip" id="connChip"><span class="full" id="connText">Not connected</span><span class="short" id="connShort">Offline</span></span>
     <button class="btn icon keep" id="btnTheme" title="Switch theme" aria-label="Switch theme"><svg class="i"><use id="themeIcon" href="#i-moon"/></svg></button>
-    <button class="btn primary js-usb"><svg class="i"><use href="#i-plug"/></svg>Connect USB</button>
-    <button class="btn js-ble"><svg class="i"><use href="#i-bt"/></svg>Connect BLE</button>
+    <div class="cbtn" id="connGroup">
+      <button class="btn primary main" id="connMain"><svg class="i"><use id="connIcon" href="#i-plug"/></svg><span id="connLabel">Connect USB</span></button>
+      <button class="btn primary arrow" id="connArrow" aria-haspopup="menu" aria-expanded="false" aria-controls="connMenu" title="Choose connection type" aria-label="Choose connection type"><svg class="i"><use href="#i-chev"/></svg></button>
+      <div class="cmenu" id="connMenu" role="menu" hidden>
+        <button role="menuitem" data-mode="usb"><svg class="i"><use href="#i-plug"/></svg><span>USB<small>Web Serial &middot; cable</small></span></button>
+        <button role="menuitem" data-mode="ble"><svg class="i"><use href="#i-bt"/></svg><span>Bluetooth LE<small>HM-10 style module</small></span></button>
+      </div>
+    </div>
     <button class="btn js-disc" hidden><svg class="i"><use href="#i-power"/></svg>Disconnect</button>
   </div>
 </header>
@@ -317,6 +348,7 @@
 <div class="page active" id="tab-dash">
   <section class="banner" id="banner">
     <div class="main"><div class="word" id="dStatus">Offline</div><div class="note" id="dStatusNote">Connect the Arduino to see live data</div></div>
+    <div class="cta"><button class="btn primary js-usb"><svg class="i"><use href="#i-plug"/></svg>Connect USB</button><button class="btn js-ble"><svg class="i"><use href="#i-bt"/></svg>Connect BLE</button></div>
     <div class="facts">
       <div><small>Shock</small><b id="fShock">&mdash;</b></div>
       <div><small>Driving pattern</small><b id="fPattern">&mdash;</b></div>
@@ -324,7 +356,7 @@
     </div>
   </section>
 
-  <section class="card c7">
+  <section class="card c6">
     <div class="hd"><h2>Proximity</h2><span class="hint">HC-SR04</span></div>
     <div class="prox">
       <svg class="fan" id="fan" viewBox="30 20 340 320" role="img" aria-label="Distance to the vehicle ahead"></svg>
@@ -338,7 +370,7 @@
     </div>
   </section>
 
-  <section class="card c5">
+  <section class="card c6">
     <div class="hd"><h2>Shock</h2><span class="chip" id="dGState">No data</span></div>
     <div class="shock">
       <svg class="radar" id="radar" viewBox="0 0 280 280" role="img" aria-label="Horizontal acceleration"></svg>
@@ -353,8 +385,9 @@
     <div class="chartwrap" style="margin-top:16px"><canvas id="gSpark"></canvas><div class="chartfoot"><span>Magnitude &middot; last 60 s</span><span><span class="leg d" id="gThrLeg">Shock threshold 1.4 g</span></span></div></div>
   </section>
 
-  <section class="card c5">
+  <section class="card c6 fixh">
     <div class="hd"><h2>Driving pattern</h2><span class="chip cobalt" id="dpTag" hidden>On-device model</span></div>
+    <div id="dpWrap">
     <div id="dpEmpty" class="empty"><b>No model in the firmware</b>Train one in Learning, then upload it.<div style="margin-top:14px"><button class="btn primary" data-go="learn"><svg class="i"><use href="#i-cpu"/></svg>Open Learning</button></div></div>
     <div id="dpLive" class="dp" hidden>
       <div class="dptop"><span class="big" id="dCls">&mdash;</span><span class="pct" id="dClsPct"></span></div>
@@ -362,10 +395,11 @@
       <div class="rest" id="dClsRest"></div>
       <div class="hint" style="margin-top:12px" id="dClsNote">Informational only; does not change the alarm logic.</div>
     </div>
+    </div>
   </section>
 
-  <section class="card c7">
-    <div class="hd"><h2>Event history</h2><button class="btn ghost sm" id="evClear"><svg class="i"><use href="#i-trash"/></svg>Clear</button></div>
+  <section class="card c6 fixh">
+    <div class="hd"><h2>Event history</h2><span class="actions" style="gap:6px"><label class="chip plain tag evauto" title="Keep the newest event in view"><input type="checkbox" id="evAuto" checked>Auto-scroll</label><button class="btn ghost sm" id="evClear"><svg class="i"><use href="#i-trash"/></svg>Clear</button></span></div>
     <div id="events"><div class="empty" id="evEmpty">Events appear here once the device is connected</div></div>
   </section>
 </div>
@@ -513,7 +547,39 @@
 
 <!-- ============ SETTINGS ============ -->
 <div class="page" id="tab-set">
-  <section class="card c6">
+  <div class="c6 stack">
+  <div class="notice info" id="setOffline"><svg class="i"><use href="#i-info"/></svg><span>Connect a device to read and change the alarm and hardware settings. Firmware and Cloud build work without one.</span></div>
+  <section class="card">
+    <div class="hd"><h2>Alarm</h2><span class="hint">Saved to EEPROM</span></div>
+    <div class="field"><label class="fl" for="sWarn">Warning &le;</label><div class="unitbox"><input type="number" id="sWarn" min="20" max="300"><em>cm</em></div></div>
+    <div class="field"><label class="fl" for="sDanger">Danger &le;</label><div class="unitbox"><input type="number" id="sDanger" min="10" max="290"><em>cm</em></div></div>
+    <div class="field"><label class="fl" for="sShock">Shock threshold</label><div class="unitbox"><input type="number" id="sShock" min="0.1" max="3" step="0.05"><em>g</em></div></div>
+    <div class="field"><label class="fl" for="sBrake">Brake threshold</label><div class="unitbox"><input type="number" id="sBrake" min="0.05" max="2" step="0.05"><em>g</em></div></div>
+    <div class="field"><label class="fl" for="sBrakeMs">Min. braking time</label><div class="unitbox"><input type="number" id="sBrakeMs" min="50" max="2000" step="10"><em>ms</em></div></div>
+    <div class="field"><label class="fl" for="sHold">Alarm hold</label><div class="unitbox"><input type="number" id="sHold" min="1" max="60"><em>s</em></div></div>
+    <div class="line strong"><span class="l">Buzzer</span><label class="sw"><input type="checkbox" id="sBuz" aria-label="Buzzer enabled"><span></span></label></div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="sSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="sRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="sReset">Restore defaults</button></div>
+    <div class="msg" id="sMsg">Rule: danger + 10 &le; warning. The distance calibration is not erased by a settings reset.</div>
+  </section>
+
+  <section class="card">
+    <div class="hd"><h2>Hardware</h2><span class="hint">Saved to EEPROM</span></div>
+    <div class="hwrow">
+      <div><label class="fl" for="hAddr">LCD I&sup2;C address</label><input type="text" id="hAddr" class="mono" value="0x27"></div>
+      <div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div>
+      <button class="btn" id="hScan">Scan I&sup2;C</button>
+    </div>
+    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
+    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
+    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
+    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
+  </section>
+  </div>
+  <div class="c6 stack">
+  <section class="card">
     <div class="hd"><h2>Firmware</h2><span class="chip tag" id="buildChip" hidden></span></div>
     <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes; it is available on every copy of this page), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
     <div id="buildUi">
@@ -527,7 +593,7 @@
     </div>
   </section>
 
-  <section class="card c6" id="cloudCard">
+  <section class="card" id="cloudCard">
     <div class="hd"><h2>Cloud build</h2><span class="chip tag" id="cbChip" hidden></span></div>
     <p class="hint">No local install: GitHub Actions compiles the firmware, then this page flashes it to the board over USB (desktop Chrome or Edge).</p>
     <div class="field"><label class="fl" for="cbRepo">Repository</label><input type="text" id="cbRepo" class="mono" value="SkillsHUB-Electronics/car-alarm" autocomplete="off" spellcheck="false"></div>
@@ -555,34 +621,7 @@
     <div class="log" id="cbLog" hidden></div>
   </section>
 
-  <section class="card c6">
-    <div class="hd"><h2>Alarm</h2><span class="hint">Saved to EEPROM</span></div>
-    <div class="field"><label class="fl" for="sWarn">Warning &le;</label><div class="unitbox"><input type="number" id="sWarn" min="20" max="300"><em>cm</em></div></div>
-    <div class="field"><label class="fl" for="sDanger">Danger &le;</label><div class="unitbox"><input type="number" id="sDanger" min="10" max="290"><em>cm</em></div></div>
-    <div class="field"><label class="fl" for="sShock">Shock threshold</label><div class="unitbox"><input type="number" id="sShock" min="0.1" max="3" step="0.05"><em>g</em></div></div>
-    <div class="field"><label class="fl" for="sBrake">Brake threshold</label><div class="unitbox"><input type="number" id="sBrake" min="0.05" max="2" step="0.05"><em>g</em></div></div>
-    <div class="field"><label class="fl" for="sBrakeMs">Min. braking time</label><div class="unitbox"><input type="number" id="sBrakeMs" min="50" max="2000" step="10"><em>ms</em></div></div>
-    <div class="field"><label class="fl" for="sHold">Alarm hold</label><div class="unitbox"><input type="number" id="sHold" min="1" max="60"><em>s</em></div></div>
-    <div class="line strong"><span class="l">Buzzer</span><label class="sw"><input type="checkbox" id="sBuz" aria-label="Buzzer enabled"><span></span></label></div>
-    <div class="actions" style="margin-top:12px"><button class="btn primary" id="sSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="sRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="sReset">Restore defaults</button></div>
-    <div class="msg" id="sMsg">Rule: danger + 10 &le; warning. The distance calibration is not erased by a settings reset.</div>
-  </section>
-
-  <section class="card c6">
-    <div class="hd"><h2>Hardware</h2><span class="hint">Saved to EEPROM</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
-      <div><label class="fl" for="hAddr">LCD I&sup2;C address</label><input type="text" id="hAddr" class="mono" value="0x27"></div>
-      <div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div>
-      <button class="btn" id="hScan">Scan I&sup2;C</button>
-    </div>
-    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
-    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
-    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
-    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
-    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
-  </section>
+  </div>
 </div>
 
 <!-- ============ GUIDE ============ -->
@@ -723,7 +762,9 @@ function eventLine(type, label, text, kind) {
   const x = document.createElement('span'); x.className = 'tx'; x.textContent = text;
   const k = document.createElement('span'); k.className = 'k'; k.textContent = kind;
   d.append(t, c, x, k);
+  const keep = el.scrollTop, hBefore = el.scrollHeight;
   el.prepend(d);
+  if ($('evAuto').checked) el.scrollTop = 0; else if (keep > 0) el.scrollTop = keep + (el.scrollHeight - hBefore);
   while (el.querySelectorAll('.ev').length > 200) el.removeChild(el.querySelector('.ev:last-of-type'));
 }
 $('evClear').onclick = () => { $('events').querySelectorAll('.ev').forEach((e) => e.remove()); $('evEmpty').hidden = false; };
@@ -756,6 +797,8 @@ function setConn(on, text) {
   document.querySelectorAll('.js-usb').forEach((b) => { b.hidden = on || !('serial' in navigator); });
   document.querySelectorAll('.js-ble').forEach((b) => { b.hidden = on || !navigator.bluetooth; });
   document.querySelectorAll('.js-disc').forEach((b) => { b.hidden = !on; });
+  $('setOffline').hidden = on;
+  updConnUi(on);
   if (on) eventLine('safe', 'Connected', bleChar ? 'BLE · ' + (bleDev && bleDev.name || 'device') : 'USB serial', 'System');
   refreshButtons(); renderStatus();
 }
@@ -1537,6 +1580,22 @@ document.querySelectorAll('#quick button').forEach((b) => { b.onclick = () => se
 
 if (!('serial' in navigator) && !navigator.bluetooth) $('unsupported').hidden = false;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+function connMode() { let m = 'usb'; try { m = localStorage.getItem('connMode') || 'usb'; } catch (e) {} const usb = 'serial' in navigator, ble = !!navigator.bluetooth; return m === 'ble' ? (ble || !usb ? 'ble' : 'usb') : (usb || !ble ? 'usb' : 'ble'); }
+function updConnUi(on) {
+  const usb = 'serial' in navigator, ble = !!navigator.bluetooth, m = connMode();
+  $('connGroup').hidden = on || (!usb && !ble);
+  $('connLabel').textContent = m === 'ble' ? 'Connect BLE' : 'Connect USB';
+  $('connIcon').setAttribute('href', m === 'ble' ? '#i-bt' : '#i-plug');
+  $('connArrow').hidden = !(usb && ble);
+  $('connMain').style.borderRadius = (usb && ble) ? '' : '9px';
+  closeConnMenu();
+}
+function closeConnMenu() { $('connMenu').hidden = true; $('connArrow').setAttribute('aria-expanded', 'false'); }
+$('connMain').onclick = () => (connMode() === 'ble' ? connectBle() : connect());
+$('connArrow').onclick = (e) => { e.stopPropagation(); const open = $('connMenu').hidden; $('connMenu').hidden = !open; $('connArrow').setAttribute('aria-expanded', String(open)); if (open) $('connMenu').querySelector('button').focus(); };
+$('connMenu').querySelectorAll('button').forEach((b) => { b.onclick = () => { try { localStorage.setItem('connMode', b.dataset.mode); } catch (e) {} closeConnMenu(); b.dataset.mode === 'ble' ? connectBle() : connect(); }; });
+document.addEventListener('click', (e) => { if (!$('connGroup').contains(e.target)) closeConnMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('connMenu').hidden) { closeConnMenu(); $('connArrow').focus(); } });
 setConn(false, 'Not connected'); resetLive(); renderCal(); renderDataset(); updSize(); setScale(); initBuild();
 </script>
 </body>
