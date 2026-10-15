@@ -181,7 +181,7 @@
   .ev { display:grid; grid-template-columns:70px 112px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
   .ev:last-child { border-bottom:0; }
   .ev time { color:var(--muted); font-variant-numeric:tabular-nums; } .ev .k { color:var(--muted); }
-  #tab-dash.active, #tab-guide.active, #tab-about.active { align-items:stretch; }
+  #tab-dash.active, #tab-guide.active, #tab-about.active, #tab-io.active { align-items:stretch; }
   .fixh { height:400px; display:flex; flex-direction:column; }
   .fixh > .hd { flex:none; }
   .fixh #events, .fixh #dpWrap { flex:1; min-height:0; overflow:auto; }
@@ -416,9 +416,8 @@
     <button class="btn danger block ioctl" id="btnAllOff" style="margin-top:14px"><svg class="i"><use href="#i-power"/></svg>Turn all outputs off</button>
   </section>
 
-  <div class="c6" style="display:grid;gap:16px">
-    <section class="card">
-      <div class="hd"><h2>Inputs</h2></div>
+  <section class="card c6">
+    <div class="hd"><h2>Inputs</h2></div>
       <div class="actions" style="justify-content:space-between"><button class="btn ioctl" id="btnRead"><svg class="i"><use href="#i-refresh"/></svg>Read sensors</button><span class="hint" style="display:flex;gap:10px;align-items:center">Auto every 1 s<label class="sw"><input type="checkbox" id="autoRead" aria-label="Read automatically every second"><span></span></label></span></div>
       <div style="margin-top:8px">
         <div class="line"><span class="l">Raw distance</span><span class="r" id="rDist">&mdash;</span></div>
@@ -427,19 +426,18 @@
         <div class="line"><span class="l">LCD I&sup2;C <span class="pin" id="rLcdAddr">0x27</span></span><span class="r"><span class="chip" id="rLcd">&mdash;</span></span></div>
       </div>
       <div class="hint" style="margin-top:8px">Quick check: LED, buzzer and LCD respond, the distance changes when a hand approaches, Z &asymp; &plusmn;1000 mg at rest.</div>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>Bluetooth</h2></div>
+  </section>
+  <section class="card c6">
+    <div class="hd"><h2>Bluetooth</h2></div>
       <div class="split"><input type="text" id="btText" maxlength="24" value="BT_TEST_1" aria-label="Text to send"><button class="btn ioctl" id="btnBt">Send to phone</button></div>
       <div class="hint" style="margin-top:8px">The text goes out through the BLE module; view it in the Car Alarm app or nRF Connect on the phone.</div>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>LCD</h2></div>
+  </section>
+  <section class="card c6">
+    <div class="hd"><h2>LCD</h2></div>
       <div class="field"><label class="fl" for="lcd0">Line 1</label><div class="cnt"><input type="text" id="lcd0" maxlength="16" value="Car Alarm Test"><em id="lcd0n">0/16</em></div></div>
       <div class="field"><label class="fl" for="lcd1">Line 2</label><div class="cnt"><input type="text" id="lcd1" maxlength="16" value="LCD OK"><em id="lcd1n">0/16</em></div></div>
       <div class="actions"><button class="btn ioctl" id="btnLcd"><svg class="i"><use href="#i-send"/></svg>Send to LCD</button><button class="btn ioctl" id="btnLcdClear">Clear</button><span class="hint" style="margin-left:auto;display:flex;gap:10px;align-items:center">Backlight<label class="sw"><input type="checkbox" id="ioBl" class="ioctl" checked aria-label="LCD backlight"><span></span></label></span></div>
-    </section>
-  </div>
+  </section>
 </div>
 
 <!-- ============ CALIBRATION ============ -->
