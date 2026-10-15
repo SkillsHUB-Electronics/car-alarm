@@ -11,7 +11,8 @@ Layout: a 244 px sidebar on desktop; below 760 px the sidebar becomes a bottom t
 | | GitHub Pages (hosted) | Local (`console/server`) |
 |---|---|---|
 | Monitoring, Test IO, calibration, learning, serial monitor, settings | yes | yes |
-| Compile & Upload firmware | via **Cloud build** (GitHub Actions + browser flashing) | yes (needs `arduino-cli`) |
+| Compile & Upload firmware with `arduino-cli` | no | yes (needs `arduino-cli`) |
+| **Cloud build** (GitHub Actions compiles, browser flashes) | yes | yes (same page, same card) |
 | Write `model_data.h` into `firmware/` | no (download it instead) | yes |
 
 Hosted: <https://skillshub-electronics.github.io/car-alarm/>

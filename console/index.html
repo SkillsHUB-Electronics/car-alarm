@@ -515,7 +515,7 @@
 <div class="page" id="tab-set">
   <section class="card c6">
     <div class="hd"><h2>Firmware</h2><span class="chip tag" id="buildChip" hidden></span></div>
-    <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
+    <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes; it is available on every copy of this page), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
     <div id="buildUi">
       <p class="hint">Compile and upload without the Arduino IDE</p>
       <div class="field"><label class="fl" for="sketchSel">Sketch</label><select id="sketchSel" class="mono"></select></div>
@@ -1443,7 +1443,7 @@ async function initBuild() {
   try {
     const st = await api('/api/status');
     if (!st.cli) throw new Error('arduino-cli not found');
-    sketches = st.sketches; helperOnline = true; $('cloudCard').hidden = true;
+    sketches = st.sketches; helperOnline = true;
     $('sketchSel').innerHTML = ''; sketches.forEach((s) => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.id; $('sketchSel').appendChild(o); });
     $('sketchSel').value = 'firmware/car_alarm';
     $('buildMeta').textContent = 'arduino-cli ' + (st.version || '') + ' · ' + st.fqbn;
