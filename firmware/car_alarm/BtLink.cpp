@@ -1,10 +1,18 @@
 #include "BtLink.h"
 #include "config.h"
 
+#if defined(ARDUINO_ARCH_ESP32)
+BtLink::BtLink() : bt_(2), out_(bt_) {}
+#else
 BtLink::BtLink() : bt_(PIN_BT_RX, PIN_BT_TX), out_(bt_) {}
+#endif
 
 void BtLink::begin() {
+#if defined(ARDUINO_ARCH_ESP32)
+  bt_.begin(9600, SERIAL_8N1, PIN_BT_RX, PIN_BT_TX);  // BLE module default data baud rate
+#else
   bt_.begin(9600);  // BLE module default data baud rate
+#endif
 }
 
 void BtLink::sendDistance(DistLevel level, int16_t cm) {

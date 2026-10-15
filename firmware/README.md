@@ -1,6 +1,6 @@
 # Firmware (`car_alarm/`)
 
-Main sketch: `car_alarm/car_alarm.ino`. Open the `car_alarm` folder in the Arduino IDE, install the **LiquidCrystal I2C** library (Frank de Brabander), select the Arduino Uno board and upload. Or compile/upload from the web console's local helper (`console/server`).
+Main sketch: `car_alarm/car_alarm.ino`. It also compiles for the ESP32 DevKit (`esp32:esp32:esp32`, BLE UART on Serial2; compile-checked in CI, **not tested on hardware**). Open the `car_alarm` folder in the Arduino IDE, install the **LiquidCrystal I2C** library (Frank de Brabander), select the Arduino Uno board and upload. Or compile/upload from the web console's local helper (`console/server`).
 
 > Firmware 2.1 (13/10/2026): adds `HW`, `I2C,SCAN`, `IO,BL`, `IO,BT` and ax/ay/az in `DBG`; Flash 70%, SRAM 60%; tested on a UNO over USB. The EEPROM layout changed, so settings revert to defaults once.
 >
