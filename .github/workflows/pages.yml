@@ -3,7 +3,7 @@ name: Deploy web console
 on:
   push:
     branches: [main]
-    paths: ['console/index.html', 'console/ml.js', 'console/sw.js', 'console/manifest.webmanifest', 'console/icon-*.png', '.github/workflows/pages.yml']
+    paths: ['console/index.html', 'console/ml.js', 'console/cloud.js', 'console/sw.js', 'console/manifest.webmanifest', 'console/icon-*.png', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -26,7 +26,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir _site
-          cp console/index.html console/ml.js console/sw.js console/manifest.webmanifest console/icon-*.png _site/
+          cp console/index.html console/ml.js console/cloud.js console/sw.js console/manifest.webmanifest console/icon-*.png _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -17,7 +17,7 @@ The module labelled "HC-05" is actually **BLE-only** (UART 9600, SoftwareSerial 
 ```
 firmware/   main sketch car_alarm (Arduino UNO)
 app/        Android app (Kotlin, BLE)
-console/    web console (index.html + ml.js, purely static; published to GitHub Pages)
+console/    web console (index.html + ml.js + cloud.js, purely static; published to GitHub Pages)
   server/   optional local helper (Node + arduino-cli) for compile/upload and writing model_data.h
   test/     ml.js unit tests (node console/test/ml.test.js)
 tests/      per-module hardware test sketches
@@ -25,7 +25,7 @@ docs/       test evidence, wiring, logo, checklist
 tools/      helper scripts (firmware compile hook)
 .github/    CI, Pages (deploys the console) and Release (hex + APK + console zip) workflows
 ```
-Repository: <https://github.com/SkillsHUB-Electronics/car-alarm>. Web console: monitoring, Test IO, calibration, learning, serial monitor and settings over Web Serial (Chrome/Edge). The GitHub Pages version has no local helper, so Compile & Upload and "Write model_data.h" are disabled there; at `localhost:8765` everything is enabled.
+Repository: <https://github.com/SkillsHUB-Electronics/car-alarm>. Web console: monitoring, Test IO, calibration, learning, serial monitor and settings over Web Serial (Chrome/Edge). The GitHub Pages version has no local helper, so the local Compile & Upload and "Write model_data.h" are disabled there; instead it offers **Cloud build** (`console/cloud.js` dispatches `.github/workflows/build-firmware.yml`, downloads the artifact, flashes UNO via STK500v1 and ESP32 via esptool-js; the user's own fine-grained token, never stored in the repo). At `localhost:8765` everything is enabled.
 
 ## Android app (`app/`)
 - Kotlin, Android Studio, no heavy dependencies; BLE GATT to the "HC-05" module (scan, no pairing); notifications are cut to ≤20 bytes, so reassemble them into lines.

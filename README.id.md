@@ -23,7 +23,7 @@ Sistem alarm untuk mobil berbasis Arduino UNO yang:
 | `docs/` | Bukti uji, wiring, logo, checklist |
 | `.github/workflows/` | `ci.yml` (uji), `pages.yml` (deploy console ke GitHub Pages), `release.yml` (hex firmware + APK + zip console) |
 
-**Web console:** <https://skillshub-electronics.github.io/car-alarm/> (setelah repo dipublikasikan). Setelah repo dibuat, aktifkan *Settings → Pages → Source: GitHub Actions*; setiap push ke `main` yang mengubah `console/` men-deploy halaman itu. Versi hosted memakai Web Serial (Chrome/Edge); Compile & Upload hanya tersedia lewat server lokal (`console/server`).
+**Web console:** <https://skillshub-electronics.github.io/car-alarm/> (setelah repo dipublikasikan). Setelah repo dibuat, aktifkan *Settings → Pages → Source: GitHub Actions*; setiap push ke `main` yang mengubah `console/` men-deploy halaman itu. Versi hosted memakai Web Serial (Chrome/Edge); Compile & Upload tersedia lewat server lokal (`console/server`); tanpa server lokal, halaman hosted punya **Cloud build** (Settings): GitHub Actions meng-compile lewat `build-firmware.yml`, lalu halaman mem-flash hasilnya lewat Web Serial (UNO dan ESP32; butuh token GitHub fine-grained milik sendiri, lihat [console/README.md](console/README.md)).
 
 **Rilis:** buat tag `vX.Y.Z` (mis. `git tag v2.1.0 && git push --tags`); workflow `release.yml` membangun firmware, APK (ditandatangani kunci debug), dan zip console, lalu melampirkannya ke GitHub Release. Lisensi: MIT ([LICENSE](LICENSE)).
 

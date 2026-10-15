@@ -1,0 +1,109 @@
+name: Build firmware
+
+# Compiles firmware/car_alarm for the web console (GitHub Pages), which cannot run a compiler itself.
+# The console dispatches this workflow with the options below, polls the run and downloads the artifact.
+run-name: Firmware ${{ inputs.build_id || github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Unique id set by the console so it can find its own run'
+        required: false
+        default: ''
+      board:
+        description: 'Target board'
+        type: choice
+        options: [uno, esp32]
+        default: uno
+      power_enabled:
+        description: 'Compile the Power module (INA219 + charger CHRG pin)'
+        type: choice
+        options: ['0', '1']
+        default: '0'
+      pin_chrg:
+        description: 'CHRG pin (empty = default)'
+        required: false
+        default: ''
+      ina_addr:
+        description: 'INA219 I2C address, e.g. 0x40 (empty = default)'
+        required: false
+        default: ''
+      ina_shunt_mohm:
+        description: 'Shunt resistor in milliohm (empty = default)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Validate inputs and build compiler flags
+        id: flags
+        env:
+          POWER: ${{ inputs.power_enabled }}
+          CHRG: ${{ inputs.pin_chrg }}
+          INA: ${{ inputs.ina_addr }}
+          SHUNT: ${{ inputs.ina_shunt_mohm }}
+        run: |
+          # Inputs come from a browser: accept only plain numbers, never pass free text to the compiler.
+          flags=""
+          [[ "${POWER:-0}" =~ ^[01]$ ]] || { echo "bad power_enabled"; exit 1; }
+          flags="-DPOWER_ENABLED=${POWER:-0}"
+          if [ -n "$CHRG" ]; then [[ "$CHRG" =~ ^[0-9]{1,2}$ ]] || { echo "bad pin_chrg"; exit 1; }; flags="$flags -DPIN_CHRG=$CHRG"; fi
+          if [ -n "$INA" ]; then [[ "$INA" =~ ^(0x[0-9a-fA-F]{1,2}|[0-9]{1,3})$ ]] || { echo "bad ina_addr"; exit 1; }; flags="$flags -DINA_ADDR=$INA"; fi
+          if [ -n "$SHUNT" ]; then [[ "$SHUNT" =~ ^[0-9]{1,5}$ ]] || { echo "bad ina_shunt_mohm"; exit 1; }; flags="$flags -DINA_SHUNT_MOHM=$SHUNT"; fi
+          echo "flags=$flags" >> "$GITHUB_OUTPUT"
+
+      - name: Install core and libraries
+        env:
+          BOARD: ${{ inputs.board || 'uno' }}
+        run: |
+          arduino-cli config init
+          if [ "$BOARD" = esp32 ]; then
+            arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+            arduino-cli core update-index
+            arduino-cli core install esp32:esp32
+            echo "FQBN=esp32:esp32:esp32" >> "$GITHUB_ENV"
+          else
+            arduino-cli core update-index
+            arduino-cli core install arduino:avr
+            echo "FQBN=arduino:avr:uno" >> "$GITHUB_ENV"
+          fi
+          arduino-cli lib install "LiquidCrystal I2C"
+
+      - name: Compile
+        env:
+          FLAGS: ${{ steps.flags.outputs.flags }}
+        run: |
+          arduino-cli compile --fqbn "$FQBN" \
+            --build-property "build.extra_flags=$FLAGS" \
+            --output-dir out firmware/car_alarm 2>&1 | tee compile.log
+
+      - name: Collect result
+        env:
+          BOARD: ${{ inputs.board || 'uno' }}
+        run: |
+          mkdir dist
+          if [ "$BOARD" = esp32 ]; then
+            cp out/car_alarm.ino.merged.bin dist/firmware.bin   # bootloader + partitions + app, flash at 0x0
+          else
+            cp out/car_alarm.ino.hex dist/firmware.hex
+          fi
+          grep -E "Sketch uses|Global variables" compile.log > dist/size.txt || true
+          cat > dist/build.json <<JSON
+          {"board":"$BOARD","sha":"${{ github.sha }}","flags":"${{ steps.flags.outputs.flags }}"}
+          JSON
+          cat dist/size.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: dist/
+          retention-days: 7
