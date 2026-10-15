@@ -186,6 +186,9 @@
   .fixh > .hd { flex:none; }
   .fixh #events, .fixh #dpWrap { flex:1; min-height:0; overflow:auto; }
   .fixh .empty { padding:56px 12px; }
+  .rxbox { height:220px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:4px 14px; background:var(--field); }
+  .rxline { display:grid; grid-template-columns:70px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:13.5px; overflow-wrap:anywhere; }
+  .rxline:last-child { border-bottom:0; } .rxline time { color:var(--muted); }
   .evauto { cursor:pointer; user-select:none; gap:6px; } .evauto input { width:auto; height:auto; margin:0; accent-color:var(--cobalt); }
   .chartwrap canvas { height:150px; }
   .cbtn { position:relative; display:inline-flex; }
@@ -437,6 +440,11 @@
       <div class="field"><label class="fl" for="lcd0">Line 1</label><div class="cnt"><input type="text" id="lcd0" maxlength="16" value="Car Alarm Test"><em id="lcd0n">0/16</em></div></div>
       <div class="field"><label class="fl" for="lcd1">Line 2</label><div class="cnt"><input type="text" id="lcd1" maxlength="16" value="LCD OK"><em id="lcd1n">0/16</em></div></div>
       <div class="actions"><button class="btn ioctl" id="btnLcd"><svg class="i"><use href="#i-send"/></svg>Send to LCD</button><button class="btn ioctl" id="btnLcdClear">Clear</button><span class="hint" style="margin-left:auto;display:flex;gap:10px;align-items:center">Backlight<label class="sw"><input type="checkbox" id="ioBl" class="ioctl" checked aria-label="LCD backlight"><span></span></label></span></div>
+  </section>
+  <section class="card" id="btRxCard">
+    <div class="hd"><h2>Bluetooth received</h2><span class="actions" style="gap:6px"><span class="chip plain tag" id="btRxCount">0 messages</span><button class="btn ghost sm" id="btRxClear"><svg class="i"><use href="#i-trash"/></svg>Clear</button></span></div>
+    <p class="hint">Text typed on the paired phone (a terminal app connected to the BLE module) appears here as it arrives. Needs the USB connection and firmware with Bluetooth text forwarding; send the text with a newline, or just pause for a moment.</p>
+    <div class="rxbox" id="btRx" role="log" aria-live="polite"><div class="empty" id="btRxEmpty"><b>No text received yet</b>Send a message from the phone to see it here.</div></div>
   </section>
 </div>
 
@@ -916,11 +924,26 @@ function onLine(line) {
       if (p[1] === 'DIST') onDist(p[0], p[2] === undefined ? null : Number(p[2]));
       else if (p[1] === 'SHOCK' || p[1] === 'BRAKE') onMotion(p[1], Number(p[2]));
       break;
+    case 'RX': if (p[1] === 'BT') onBtRx(line.slice(6)); break;
     case 'CLS': onCls(Number(p[1]), Number(p[2])); break;
     case 'FEAT': onFeat(p.slice(1).map(Number)); break;
     case 'DBG': onDbg(p); break;
   }
 }
+let btRxN = 0;
+function onBtRx(text) {
+  const el = $('btRx');
+  $('btRxEmpty').hidden = true;
+  const d = document.createElement('div'); d.className = 'rxline';
+  const t = document.createElement('time'); t.textContent = hhmmss();
+  const x = document.createElement('span'); x.textContent = text;
+  d.append(t, x);
+  el.prepend(d);
+  el.scrollTop = 0;
+  while (el.querySelectorAll('.rxline').length > 100) el.removeChild(el.querySelector('.rxline:last-of-type'));
+  $('btRxCount').textContent = ++btRxN + (btRxN === 1 ? ' message' : ' messages');
+}
+$('btRxClear').onclick = () => { $('btRx').querySelectorAll('.rxline').forEach((e) => e.remove()); $('btRxEmpty').hidden = false; btRxN = 0; $('btRxCount').textContent = '0 messages'; };
 function renderStatus() {
   let cls = '', t = 'Offline', n = 'Connect the Arduino to see live data';
   if (connected) {

@@ -41,10 +41,12 @@ class Commands {
     char buf[CMD_LINE_MAX];
     uint8_t len = 0;
     bool overflow = false;
+    unsigned long last = 0;  // time of the last received byte
   };
 
-  void poll(Stream &port, Channel &ch, unsigned long now);
-  void handle(char *line, Print &out, unsigned long now);
+  void poll(Stream &port, Channel &ch, unsigned long now, bool fromBle);
+  void finishLine(Stream &port, Channel &ch, unsigned long now, bool fromBle);
+  bool handle(char *line, Print &out, unsigned long now);  // false = not a command
   void cmdCfg(char **a, uint8_t n, Print &out);
   void cmdCal(char **a, uint8_t n, Print &out);
   void cmdIo(char **a, uint8_t n, Print &out, unsigned long now);
