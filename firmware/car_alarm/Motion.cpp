@@ -22,7 +22,7 @@ bool Motion::readAccel(float v[3]) {
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(REG_ACCEL_XOUT_H);
   if (Wire.endTransmission(false) != 0) return false;
-  if (Wire.requestFrom(MPU_ADDR, (uint8_t)6) != 6) return false;
+  if (Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)6) != 6) return false;
 
   for (uint8_t i = 0; i < 3; i++) {
     int16_t raw = (Wire.read() << 8) | Wire.read();
