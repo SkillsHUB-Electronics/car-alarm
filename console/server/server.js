@@ -197,6 +197,13 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
     return res.end(fs.readFileSync(path.join(WEB, 'cloud.js')));
   }
+  // Static assets of the page (logo, favicon, PWA files): fixed whitelist, nothing else is served from console/.
+  const STATIC = { 'icon-180.png': 'image/png', 'icon-192.png': 'image/png', 'icon-512.png': 'image/png',
+                   'manifest.webmanifest': 'application/manifest+json', 'sw.js': 'text/javascript; charset=utf-8' };
+  if (req.method === 'GET' && Object.prototype.hasOwnProperty.call(STATIC, url.slice(1))) {
+    res.writeHead(200, { 'Content-Type': STATIC[url.slice(1)], 'Cache-Control': 'no-cache' });
+    return res.end(fs.readFileSync(path.join(WEB, url.slice(1))));
+  }
   if (req.method === 'GET' && url === '/api/model') {
     const text = fs.existsSync(MODEL_FILE) ? fs.readFileSync(MODEL_FILE, 'utf8') : '';
     return json(res, 200, { present: /#define MODEL_PRESENT 1/.test(text), bytes: text.length });
