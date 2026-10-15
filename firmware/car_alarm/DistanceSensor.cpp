@@ -3,13 +3,18 @@
 #include "Settings.h"
 
 void DistanceSensor::begin() {
+#if INC_DIST
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
   digitalWrite(PIN_TRIG, LOW);
+#endif
 }
 
 // Echo time in microseconds, 0 on timeout.
 unsigned long DistanceSensor::readEchoUs() {
+#if !INC_DIST
+  return 0;  // no sensor in this build: every read is a timeout, which never raises an alarm
+#endif
   digitalWrite(PIN_TRIG, LOW);
   delayMicroseconds(2);
   digitalWrite(PIN_TRIG, HIGH);

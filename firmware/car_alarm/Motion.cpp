@@ -33,6 +33,9 @@ bool Motion::readAccel(float v[3]) {
 
 bool Motion::begin() {
   ok_ = false;
+#if !INC_MPU
+  return false;  // no MPU6050 in this build: no shock/brake detection
+#endif
   if (!writeReg(REG_PWR_MGMT_1, 0)) return false;  // wake up
   writeReg(REG_CONFIG, 0x03);                      // digital low-pass ~44 Hz: less engine/road vibration
   writeReg(REG_ACCEL_CONFIG, 0x08);                // +/-4 g

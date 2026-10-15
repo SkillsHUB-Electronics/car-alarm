@@ -111,10 +111,33 @@ function runJob(res, args) {
   res.on('close', () => { if (!finished) { child.kill(); busy = false; finished = true; } });
 }
 
-function buildArgs(sketchId, upload, port) {
+// Build options from the Config page ("NAME=VALUE"): names are whitelisted and values are plain numbers, so nothing
+// else can reach the compiler. Same rules as .github/workflows/build-firmware.yml.
+const FLAG_NUM = /^(0x[0-9a-fA-F]{1,2}|[0-9]{1,3})$/;
+const FLAG_RULES = {
+  INC_DIST: /^[01]$/, INC_BT: /^[01]$/, INC_BUZZER: /^[01]$/, INC_LED: /^[01]$/, INC_LCD: /^[01]$/, INC_MPU: /^[01]$/,
+  PIN_TRIG: FLAG_NUM, PIN_ECHO: FLAG_NUM, PIN_BT_RX: FLAG_NUM, PIN_BT_TX: FLAG_NUM, PIN_BUZZER: FLAG_NUM,
+  PIN_LED_RED: FLAG_NUM, PIN_LED_GREEN: FLAG_NUM, PIN_LED_YELLOW: FLAG_NUM, LCD_ADDR: FLAG_NUM, MPU_ADDR: FLAG_NUM,
+  POWER_ENABLED: /^[01]$/, PIN_CHRG: /^[0-9]{1,2}$/, INA_ADDR: FLAG_NUM, INA_SHUNT_MOHM: /^[0-9]{1,5}$/
+};
+function parseFlags(list) {
+  if (!Array.isArray(list)) return { flags: '' };
+  const out = [];
+  for (const item of list.slice(0, 40)) {
+    const m = /^([A-Z_0-9]+)=([^\s]+)$/.exec(String(item));
+    if (!m || !Object.prototype.hasOwnProperty.call(FLAG_RULES, m[1]) || !FLAG_RULES[m[1]].test(m[2])) return { error: 'Bad build option: ' + String(item).slice(0, 40) };
+    out.push('-D' + m[1] + '=' + m[2]);
+  }
+  return { flags: out.join(' ') };
+}
+
+function buildArgs(sketchId, upload, port, flagList) {
   const sketch = listSketches().find((s) => s.id === sketchId);
   if (!sketch) return { error: 'Unknown sketch' };
+  const parsed = parseFlags(flagList);
+  if (parsed.error) return { error: parsed.error };
   const args = ['compile', '--fqbn', FQBN, '--build-path', path.join(BUILD_ROOT, sketch.name), ...CFG_ARGS];
+  if (parsed.flags) args.push('--build-property', 'build.extra_flags=' + parsed.flags);
   if (upload) {
     const known = listPorts().find((p) => p.address === port);
     if (!known) return { error: 'Port not found: ' + port };
@@ -226,7 +249,7 @@ const server = http.createServer(async (req, res) => {
     if (!CLI) return json(res, 500, { error: 'arduino-cli not found' });
     const body = await readBody(req);
     const upload = url === '/api/upload';
-    const { args, error } = buildArgs(String(body.sketch || ''), upload, String(body.port || ''));
+    const { args, error } = buildArgs(String(body.sketch || ''), upload, String(body.port || ''), body.flags);
     if (error) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end(error + '\n__EXIT__ 1\n'); }
     return runJob(res, args);
   }

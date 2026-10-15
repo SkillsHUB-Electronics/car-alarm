@@ -1537,7 +1537,7 @@ async function runBuild(upload, sketch, portAddr, status) {
   if (reopen) { await disconnect(); }
   const out = $('buildLog'); out.hidden = false; out.textContent = '';
   status && status('Running…');
-  const r = await fetch(upload ? '/api/upload' : '/api/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sketch, port: portAddr }) });
+  const r = await fetch(upload ? '/api/upload' : '/api/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sketch, port: portAddr, flags: buildFlags(true) }) });
   const rd = r.body.getReader(), dec = new TextDecoder(); let all = '';
   for (;;) { const { value, done } = await rd.read(); if (done) break; all += dec.decode(value, { stream: true }); out.textContent = all; out.scrollTop = out.scrollHeight; }
   const code = Number((/__EXIT__ (-?\d+)/.exec(all) || [])[1]);
@@ -1568,6 +1568,29 @@ function applyIf() {
   INC_IDS.forEach((id) => { const row = $(id).closest('.ifrow'); row.classList.toggle('off', !$(id).checked); });
   $('cbPowerOpts').hidden = !$('cbPower').checked;
   $('bldLocalNote').hidden = $('cbBoard').value === 'uno';
+}
+// Build options for the compiler, from the Config page: ["PIN_TRIG=4", "INC_LCD=0", ...].
+const PIN_MACRO = { trig: 'PIN_TRIG', echo: 'PIN_ECHO', btrx: 'PIN_BT_RX', bttx: 'PIN_BT_TX', buz: 'PIN_BUZZER', red: 'PIN_LED_RED', green: 'PIN_LED_GREEN', yellow: 'PIN_LED_YELLOW' };
+const INC_MACRO = { incDist: 'INC_DIST', incBt: 'INC_BT', incBuz: 'INC_BUZZER', incLed: 'INC_LED', incLcd: 'INC_LCD', incMpu: 'INC_MPU' };
+function buildFlags(withPower) {
+  const f = [];
+  const addr = /^(0x[0-9a-fA-F]{1,2}|[0-9]{1,3})$/;
+  const pins = { trig: 'incDist', echo: 'incDist', btrx: 'incBt', bttx: 'incBt', buz: 'incBuz', red: 'incLed', green: 'incLed', yellow: 'incLed' };
+  for (const id in INC_MACRO) if (!$(id).checked) f.push(INC_MACRO[id] + '=0');
+  document.querySelectorAll('.pinin[data-pin]').forEach((el) => {
+    const v = el.value.trim();
+    if (!v || !$(pins[el.dataset.pin]).checked) return;
+    if (!/^[0-9]{1,2}$/.test(v)) throw new Error('Pin must be a number: ' + v);
+    f.push(PIN_MACRO[el.dataset.pin] + '=' + v);
+  });
+  const lcd = $('hAddr').value.trim().toLowerCase(), mpu = $('mpuAddr').value.trim();
+  if ($('incLcd').checked && lcd && lcd !== '0x27') { if (!addr.test(lcd)) throw new Error('Bad LCD address: ' + lcd); f.push('LCD_ADDR=' + lcd); }
+  if ($('incMpu').checked && mpu && mpu.toLowerCase() !== '0x68') { if (!addr.test(mpu)) throw new Error('Bad MPU address: ' + mpu); f.push('MPU_ADDR=' + mpu); }
+  if (withPower && $('cbPower').checked) {
+    f.push('POWER_ENABLED=1');
+    for (const [id, m] of [['cbChrg', 'PIN_CHRG'], ['cbIna', 'INA_ADDR'], ['cbShunt', 'INA_SHUNT_MOHM']]) { const v = $(id).value.trim(); if (v) f.push(m + '=' + v); }
+  }
+  return f;
 }
 function saveIf() {
   const o = { inc: {}, pins: {}, mpu: $('mpuAddr').value };
@@ -1607,6 +1630,7 @@ $('cbBuild').onclick = async () => {
   lsSet('cbRepo', repo); lsSet('cbRef', ref); lsSet('cbBoard', board); lsSet('cbToken', $('cbRemember').checked ? token : '');
   const inputs = { board, power_enabled: $('cbPower').checked ? '1' : '0' };
   if ($('cbPower').checked) { inputs.pin_chrg = $('cbChrg').value.trim(); inputs.ina_addr = $('cbIna').value.trim(); inputs.ina_shunt_mohm = $('cbShunt').value.trim(); }
+  inputs.build_flags = buildFlags(false).join(' ');
   cbResult = null; $('cbFlash').disabled = $('cbDownload').disabled = $('cbBuild').disabled = true;
   $('cbLog').textContent = ''; $('cbChip').hidden = true;
   try {
