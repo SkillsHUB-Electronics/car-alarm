@@ -181,7 +181,7 @@
   .ev { display:grid; grid-template-columns:70px 112px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
   .ev:last-child { border-bottom:0; }
   .ev time { color:var(--muted); font-variant-numeric:tabular-nums; } .ev .k { color:var(--muted); }
-  #tab-dash.active { align-items:stretch; }
+  #tab-dash.active, #tab-guide.active, #tab-about.active { align-items:stretch; }
   .fixh { height:400px; display:flex; flex-direction:column; }
   .fixh > .hd { flex:none; }
   .fixh #events, .fixh #dpWrap { flex:1; min-height:0; overflow:auto; }
@@ -626,7 +626,7 @@
 
 <!-- ============ GUIDE ============ -->
 <div class="page" id="tab-guide">
-  <section class="card c7">
+  <section class="card c6">
     <div class="hd"><h2>Quick start</h2></div>
     <ol class="qs">
       <li><span class="n">1</span><div><b>Connect</b><span>Press Connect USB or Connect BLE. Use Chrome or Edge.</span></div></li>
@@ -636,7 +636,7 @@
       <li><span class="n">5</span><div><b>Train a driving model</b><span>Optional. Record, train, then upload in Learning.</span></div></li>
     </ol>
   </section>
-  <section class="card c5">
+  <section class="card c6">
     <div class="hd"><h2>Wiring</h2></div>
     <div class="line"><span class="l">Red LED</span><span class="r">D5</span></div>
     <div class="line"><span class="l">Green LED</span><span class="r">D6</span></div>
@@ -670,13 +670,13 @@
 
 <!-- ============ ABOUT ============ -->
 <div class="page" id="tab-about">
-  <section class="card c7">
+  <section class="card c6">
     <div class="hd"><h2>About</h2></div>
     <div class="about-head"><img src="icon-192.png" alt="Car Alarm logo"><div><h3>Car Distance &amp; Shock Alarm</h3><span>Console for the Arduino UNO car alarm</span></div></div>
     <div class="chips"><span class="chip plain">Arduino UNO</span><span class="chip plain">HC-SR04</span><span class="chip plain">MPU6050</span><span class="chip plain">LCD 16&times;2 I&sup2;C</span><span class="chip plain">Buzzer + LEDs</span><span class="chip plain">BLE module</span></div>
     <span class="chip warn">Assistive tool, not a safety system</span>
   </section>
-  <section class="card c5">
+  <section class="card c6">
     <div class="hd"><h2>Connection</h2></div>
     <div class="line"><span class="l">Console protocol</span><span class="r">Firmware v2.1</span></div>
     <div class="line"><span class="l">USB</span><span class="r">Web Serial &middot; 9600 baud</span></div>
