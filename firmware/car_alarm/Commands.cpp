@@ -33,26 +33,25 @@ void Commands::begin(BtLink *link, DistanceSensor *dist, Motion *motion, Alerts 
 }
 
 void Commands::update(unsigned long now) {
-  poll(Serial, usb_, now);
-  poll(link_->ble(), ble_, now);
+  poll(Serial, usb_, now, false);
+  poll(link_->ble(), ble_, now, true);
+  // Phone terminals often send text without a newline: treat a pause as the end of the line.
+  if (ble_.len > 0 && now - ble_.last >= BLE_IDLE_MS) finishLine(link_->ble(), ble_, now, true);
   if (io_ && now - ioLast_ >= IO_TIMEOUT_MS) {
     ioOff();
     link_->both().print(F("RSP,IO,OFF\n"));
   }
 }
 
-// Reads whatever is waiting, one line at a time; over-long lines are dropped up to their newline.
-void Commands::poll(Stream &port, Channel &ch, unsigned long now) {
+// Reads whatever is waiting, one line at a time; over-long lines are dropped up to their newline
+// (from the BLE module the truncated start is still forwarded as text).
+void Commands::poll(Stream &port, Channel &ch, unsigned long now, bool fromBle) {
   while (port.available() > 0) {
     char c = (char)port.read();
+    ch.last = now;
     if (c == '\r') continue;
     if (c == '\n') {
-      if (!ch.overflow && ch.len > 0) {
-        ch.buf[ch.len] = '\0';
-        handle(ch.buf, port, now);
-      }
-      ch.len = 0;
-      ch.overflow = false;
+      finishLine(port, ch, now, fromBle);
       continue;
     }
     if (ch.len >= CMD_LINE_MAX - 1) {
@@ -63,11 +62,29 @@ void Commands::poll(Stream &port, Channel &ch, unsigned long now) {
   }
 }
 
-void Commands::handle(char *line, Print &out, unsigned long now) {
+// Runs a complete line as a command. Text from the BLE module that is not a command (a message typed on the
+// paired phone) is passed on to USB as `RX,BT,<text>`.
+void Commands::finishLine(Stream &port, Channel &ch, unsigned long now, bool fromBle) {
+  if (ch.len > 0 && (!ch.overflow || fromBle)) {
+    ch.buf[ch.len] = '\0';
+    char text[CMD_LINE_MAX];
+    if (fromBle) memcpy(text, ch.buf, ch.len + 1);  // handle() splits the line in place
+    if (!handle(ch.buf, port, now) && fromBle) {
+      Serial.print(F("RX,BT,"));
+      Serial.print(text);
+      Serial.print('\n');
+    }
+  }
+  ch.len = 0;
+  ch.overflow = false;
+}
+
+bool Commands::handle(char *line, Print &out, unsigned long now) {
   char *a[10];
   uint8_t n = 0;
   for (char *p = strtok(line, ","); p && n < 10; p = strtok(nullptr, ",")) a[n++] = p;
-  if (n == 0) return;
+  if (n == 0) return true;
+  bool known = true;
 
   if (is(a[0], "PING") || is(a[0], "VER")) {
     out.print(F("RSP,VER," FW_VERSION ","));
@@ -121,8 +138,10 @@ void Commands::handle(char *line, Print &out, unsigned long now) {
     out.print(F("RSP,DBG,"));
     out.print(dbg_ ? 1 : 0);
     out.print('\n');
+  } else {
+    known = false;  // not a command; our own event lines echoed back end up here too
   }
-  // anything else (including our own event lines echoed back) is ignored silently
+  return known;
 }
 
 void Commands::printCfg(Print &out) {

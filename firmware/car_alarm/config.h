@@ -68,6 +68,7 @@ constexpr unsigned long BT_DIST_PERIOD_MS = 500;       // periodic distance mess
 constexpr unsigned long BT_MOTION_COOLDOWN_MS = 3000;  // per event type
 
 // ---- Phase 6: commands, test IO, learning ----------------------------------
+constexpr unsigned long BLE_IDLE_MS = 250;       // BLE text without a newline counts as a finished line after this pause
 constexpr unsigned long IO_TIMEOUT_MS = 30000;   // test-IO mode ends after this long without a command
 constexpr unsigned long FEAT_WINDOW_MS = 1000;   // IMU feature window
 constexpr uint8_t FEAT_COUNT = 8;                // features per window (see Motion.h)

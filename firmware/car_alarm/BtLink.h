@@ -29,6 +29,7 @@ class TeePrint : public Print {
 //   ALARM,BRAKE,<g>           on hard braking (cooldown per type)
 //   FEAT,<label>,f0..f7       learning features (milli-g), while recording
 //   CLS,<class>,<percent>     classifier output, once per feature window
+//   RX,BT,<text>              USB only: text received from the paired phone that is not a command
 // Command replies (`RSP,...` / `ERR,...`) are written by Commands to the channel the command came from.
 class BtLink {
  public:

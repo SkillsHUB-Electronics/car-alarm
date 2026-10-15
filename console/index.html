@@ -181,11 +181,14 @@
   .ev { display:grid; grid-template-columns:70px 112px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
   .ev:last-child { border-bottom:0; }
   .ev time { color:var(--muted); font-variant-numeric:tabular-nums; } .ev .k { color:var(--muted); }
-  #tab-dash.active { align-items:stretch; }
+  #tab-dash.active, #tab-guide.active, #tab-about.active, #tab-io.active { align-items:stretch; }
   .fixh { height:400px; display:flex; flex-direction:column; }
   .fixh > .hd { flex:none; }
   .fixh #events, .fixh #dpWrap { flex:1; min-height:0; overflow:auto; }
   .fixh .empty { padding:56px 12px; }
+  .rxbox { height:220px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:4px 14px; background:var(--field); }
+  .rxline { display:grid; grid-template-columns:70px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:13.5px; overflow-wrap:anywhere; }
+  .rxline:last-child { border-bottom:0; } .rxline time { color:var(--muted); }
   .evauto { cursor:pointer; user-select:none; gap:6px; } .evauto input { width:auto; height:auto; margin:0; accent-color:var(--cobalt); }
   .chartwrap canvas { height:150px; }
   .cbtn { position:relative; display:inline-flex; }
@@ -416,9 +419,8 @@
     <button class="btn danger block ioctl" id="btnAllOff" style="margin-top:14px"><svg class="i"><use href="#i-power"/></svg>Turn all outputs off</button>
   </section>
 
-  <div class="c6" style="display:grid;gap:16px">
-    <section class="card">
-      <div class="hd"><h2>Inputs</h2></div>
+  <section class="card c6">
+    <div class="hd"><h2>Inputs</h2></div>
       <div class="actions" style="justify-content:space-between"><button class="btn ioctl" id="btnRead"><svg class="i"><use href="#i-refresh"/></svg>Read sensors</button><span class="hint" style="display:flex;gap:10px;align-items:center">Auto every 1 s<label class="sw"><input type="checkbox" id="autoRead" aria-label="Read automatically every second"><span></span></label></span></div>
       <div style="margin-top:8px">
         <div class="line"><span class="l">Raw distance</span><span class="r" id="rDist">&mdash;</span></div>
@@ -427,19 +429,23 @@
         <div class="line"><span class="l">LCD I&sup2;C <span class="pin" id="rLcdAddr">0x27</span></span><span class="r"><span class="chip" id="rLcd">&mdash;</span></span></div>
       </div>
       <div class="hint" style="margin-top:8px">Quick check: LED, buzzer and LCD respond, the distance changes when a hand approaches, Z &asymp; &plusmn;1000 mg at rest.</div>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>Bluetooth</h2></div>
+  </section>
+  <section class="card c6">
+    <div class="hd"><h2>Bluetooth</h2></div>
       <div class="split"><input type="text" id="btText" maxlength="24" value="BT_TEST_1" aria-label="Text to send"><button class="btn ioctl" id="btnBt">Send to phone</button></div>
       <div class="hint" style="margin-top:8px">The text goes out through the BLE module; view it in the Car Alarm app or nRF Connect on the phone.</div>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>LCD</h2></div>
+  </section>
+  <section class="card c6">
+    <div class="hd"><h2>LCD</h2></div>
       <div class="field"><label class="fl" for="lcd0">Line 1</label><div class="cnt"><input type="text" id="lcd0" maxlength="16" value="Car Alarm Test"><em id="lcd0n">0/16</em></div></div>
       <div class="field"><label class="fl" for="lcd1">Line 2</label><div class="cnt"><input type="text" id="lcd1" maxlength="16" value="LCD OK"><em id="lcd1n">0/16</em></div></div>
       <div class="actions"><button class="btn ioctl" id="btnLcd"><svg class="i"><use href="#i-send"/></svg>Send to LCD</button><button class="btn ioctl" id="btnLcdClear">Clear</button><span class="hint" style="margin-left:auto;display:flex;gap:10px;align-items:center">Backlight<label class="sw"><input type="checkbox" id="ioBl" class="ioctl" checked aria-label="LCD backlight"><span></span></label></span></div>
-    </section>
-  </div>
+  </section>
+  <section class="card" id="btRxCard">
+    <div class="hd"><h2>Bluetooth received</h2><span class="actions" style="gap:6px"><span class="chip plain tag" id="btRxCount">0 messages</span><button class="btn ghost sm" id="btRxClear"><svg class="i"><use href="#i-trash"/></svg>Clear</button></span></div>
+    <p class="hint">Text typed on the paired phone (a terminal app connected to the BLE module) appears here as it arrives. Needs the USB connection and firmware with Bluetooth text forwarding; send the text with a newline, or just pause for a moment.</p>
+    <div class="rxbox" id="btRx" role="log" aria-live="polite"><div class="empty" id="btRxEmpty"><b>No text received yet</b>Send a message from the phone to see it here.</div></div>
+  </section>
 </div>
 
 <!-- ============ CALIBRATION ============ -->
@@ -626,7 +632,7 @@
 
 <!-- ============ GUIDE ============ -->
 <div class="page" id="tab-guide">
-  <section class="card c7">
+  <section class="card c6">
     <div class="hd"><h2>Quick start</h2></div>
     <ol class="qs">
       <li><span class="n">1</span><div><b>Connect</b><span>Press Connect USB or Connect BLE. Use Chrome or Edge.</span></div></li>
@@ -636,7 +642,7 @@
       <li><span class="n">5</span><div><b>Train a driving model</b><span>Optional. Record, train, then upload in Learning.</span></div></li>
     </ol>
   </section>
-  <section class="card c5">
+  <section class="card c6">
     <div class="hd"><h2>Wiring</h2></div>
     <div class="line"><span class="l">Red LED</span><span class="r">D5</span></div>
     <div class="line"><span class="l">Green LED</span><span class="r">D6</span></div>
@@ -670,13 +676,13 @@
 
 <!-- ============ ABOUT ============ -->
 <div class="page" id="tab-about">
-  <section class="card c7">
+  <section class="card c6">
     <div class="hd"><h2>About</h2></div>
     <div class="about-head"><img src="icon-192.png" alt="Car Alarm logo"><div><h3>Car Distance &amp; Shock Alarm</h3><span>Console for the Arduino UNO car alarm</span></div></div>
     <div class="chips"><span class="chip plain">Arduino UNO</span><span class="chip plain">HC-SR04</span><span class="chip plain">MPU6050</span><span class="chip plain">LCD 16&times;2 I&sup2;C</span><span class="chip plain">Buzzer + LEDs</span><span class="chip plain">BLE module</span></div>
     <span class="chip warn">Assistive tool, not a safety system</span>
   </section>
-  <section class="card c5">
+  <section class="card c6">
     <div class="hd"><h2>Connection</h2></div>
     <div class="line"><span class="l">Console protocol</span><span class="r">Firmware v2.1</span></div>
     <div class="line"><span class="l">USB</span><span class="r">Web Serial &middot; 9600 baud</span></div>
@@ -918,11 +924,26 @@ function onLine(line) {
       if (p[1] === 'DIST') onDist(p[0], p[2] === undefined ? null : Number(p[2]));
       else if (p[1] === 'SHOCK' || p[1] === 'BRAKE') onMotion(p[1], Number(p[2]));
       break;
+    case 'RX': if (p[1] === 'BT') onBtRx(line.slice(6)); break;
     case 'CLS': onCls(Number(p[1]), Number(p[2])); break;
     case 'FEAT': onFeat(p.slice(1).map(Number)); break;
     case 'DBG': onDbg(p); break;
   }
 }
+let btRxN = 0;
+function onBtRx(text) {
+  const el = $('btRx');
+  $('btRxEmpty').hidden = true;
+  const d = document.createElement('div'); d.className = 'rxline';
+  const t = document.createElement('time'); t.textContent = hhmmss();
+  const x = document.createElement('span'); x.textContent = text;
+  d.append(t, x);
+  el.prepend(d);
+  el.scrollTop = 0;
+  while (el.querySelectorAll('.rxline').length > 100) el.removeChild(el.querySelector('.rxline:last-of-type'));
+  $('btRxCount').textContent = ++btRxN + (btRxN === 1 ? ' message' : ' messages');
+}
+$('btRxClear').onclick = () => { $('btRx').querySelectorAll('.rxline').forEach((e) => e.remove()); $('btRxEmpty').hidden = false; btRxN = 0; $('btRxCount').textContent = '0 messages'; };
 function renderStatus() {
   let cls = '', t = 'Offline', n = 'Connect the Arduino to see live data';
   if (connected) {
