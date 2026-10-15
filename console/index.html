@@ -213,6 +213,7 @@
   .steps button .n { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:var(--track); color:var(--muted); font-weight:600; }
   .steps button.done .n { background:var(--safe); color:#fff; } .steps button.cur { background:var(--cobalt-soft); color:var(--ink); } .steps button.cur .n { background:var(--cobalt); color:#fff; }
   .cls { margin:12px 0; } .cls .t { display:flex; justify-content:space-between; font-weight:600; margin-bottom:5px; } .cls .t span:last-child { color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums; }
+  #tab-learn.active { align-items:stretch; } #lrnLeft { grid-template-rows:auto 1fr; }
   .conf td,.conf th { padding:4px 6px; font-size:12.5px; text-align:center; } .conf td.hit { font-weight:700; color:var(--safe-ink); } .conf td.miss { color:var(--danger-ink); font-weight:700; }
 
   /* ---------- serial monitor ---------- */
@@ -503,7 +504,8 @@
     <button data-step="lrnTrainCard" id="stp2"><span class="n">2</span>Train</button>
     <button data-step="lrnDeployCard" id="stp3"><span class="n">3</span>Deploy</button>
   </div>
-  <section class="card c6" id="lrnRecCard">
+  <div class="c6 stack" id="lrnLeft">
+  <section class="card" id="lrnRecCard">
     <div class="hd"><h2>1 &middot; Record</h2><span class="chip" id="lrnConn">Not connected</span></div>
     <p class="hint">Mount the unit in the car (MPU +Y facing forward), pick a class, press Record, perform the manoeuvre, then Stop. The device sends 8 features per second over USB. Data can also be <b>imported</b> from a CSV exported by the Android app. Recording while driving is unsafe: have someone else operate it, or use the app on the phone.</p>
     <div class="field"><label class="fl" for="lrnClass">Class</label><select id="lrnClass"></select></div>
@@ -511,13 +513,7 @@
     <button class="btn primary block" id="lrnRec"><svg class="i"><use href="#i-play"/></svg><span id="lrnRecText">Record</span></button>
     <div class="msg" id="lrnLive"></div>
   </section>
-  <section class="card c6" id="lrnDataCard">
-    <div class="hd"><h2>Dataset</h2><span class="actions" style="gap:8px"><button class="btn sm" id="lrnImport"><svg class="i"><use href="#i-upload"/></svg>Import CSV</button><input type="file" id="lrnFile" accept=".csv,text/csv,text/plain" multiple hidden><button class="btn sm" id="lrnExport"><svg class="i"><use href="#i-download"/></svg>Export CSV</button><button class="btn sm icon" id="lrnClear" title="Delete all" aria-label="Delete all data"><svg class="i"><use href="#i-trash"/></svg></button></span></div>
-    <div class="stats"><div class="stat"><small>Windows</small><b id="lrnTotal">0</b></div><div class="stat"><small>Classes ready</small><b id="lrnReady">0 of 14</b></div><div class="stat"><small>Target per class</small><b>120</b></div></div>
-    <div id="lrnTable" style="margin-top:12px"></div>
-    <div class="hint" id="lrnTotals" style="margin-top:8px"></div>
-  </section>
-  <section class="card c6" id="lrnTrainCard">
+  <section class="card" id="lrnTrainCard">
     <div class="hd"><h2>2 &middot; Train</h2></div>
     <div class="field"><label class="fl" for="trHidden">Hidden neurons</label><select id="trHidden"><option>8</option><option selected>12</option><option>16</option><option>24</option><option>32</option></select></div>
     <div class="field"><label class="fl" for="trEpochs">Epochs</label><input type="number" id="trEpochs" value="300" min="20" max="3000" step="10"></div>
@@ -526,6 +522,13 @@
     <button class="btn primary block" id="trGo" style="margin-top:16px">Train model</button>
     <div class="msg" id="trProg"></div>
     <div id="trResult" class="hint" style="color:var(--ink)"></div>
+  </section>
+  </div>
+  <section class="card c6" id="lrnDataCard">
+    <div class="hd"><h2>Dataset</h2><span class="actions" style="gap:8px"><button class="btn sm" id="lrnImport"><svg class="i"><use href="#i-upload"/></svg>Import CSV</button><input type="file" id="lrnFile" accept=".csv,text/csv,text/plain" multiple hidden><button class="btn sm" id="lrnExport"><svg class="i"><use href="#i-download"/></svg>Export CSV</button><button class="btn sm icon" id="lrnClear" title="Delete all" aria-label="Delete all data"><svg class="i"><use href="#i-trash"/></svg></button></span></div>
+    <div class="stats"><div class="stat"><small>Windows</small><b id="lrnTotal">0</b></div><div class="stat"><small>Classes ready</small><b id="lrnReady">0 of 14</b></div><div class="stat"><small>Target per class</small><b>120</b></div></div>
+    <div id="lrnTable" style="margin-top:12px"></div>
+    <div class="hint" id="lrnTotals" style="margin-top:8px"></div>
   </section>
   <section class="card c6" id="lrnDeployCard">
     <div class="hd"><h2>3 &middot; Deploy</h2></div>
@@ -537,7 +540,7 @@
     <div style="text-align:center;margin-top:8px"><button class="btn ghost" id="mdlRemove">Remove model from firmware</button></div>
     <div class="msg" id="mdlMsg"></div>
   </section>
-  <section class="card"><div class="hd"><h2>Confusion matrix (validation)</h2></div><div id="trConf" class="hint" style="overflow:auto">No results yet.</div></section>
+  <section class="card c6"><div class="hd"><h2>Confusion matrix (validation)</h2></div><div id="trConf" class="hint" style="overflow:auto">No results yet.</div></section>
 </div>
 
 <!-- ============ SERIAL MONITOR ============ -->
