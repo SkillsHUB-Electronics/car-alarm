@@ -5,6 +5,8 @@ name: Build firmware
 run-name: Firmware ${{ inputs.build_id || github.sha }}
 
 on:
+  pull_request:
+    paths: ['.github/workflows/build-firmware.yml']   # a PR that edits this workflow builds both boards as a check
   workflow_dispatch:
     inputs:
       build_id:
@@ -40,6 +42,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # dispatch: the one board asked for; pull request: both boards
+        board: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.board) || '["uno","esp32"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: arduino/setup-arduino-cli@v2
@@ -63,7 +70,7 @@ jobs:
 
       - name: Install core and libraries
         env:
-          BOARD: ${{ inputs.board || 'uno' }}
+          BOARD: ${{ matrix.board }}
         run: |
           arduino-cli config init
           if [ "$BOARD" = esp32 ]; then
@@ -88,7 +95,7 @@ jobs:
 
       - name: Collect result
         env:
-          BOARD: ${{ inputs.board || 'uno' }}
+          BOARD: ${{ matrix.board }}
         run: |
           mkdir dist
           if [ "$BOARD" = esp32 ]; then
@@ -104,6 +111,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: ${{ github.event_name == 'workflow_dispatch' && 'firmware' || format('firmware-{0}', matrix.board) }}
           path: dist/
           retention-days: 7
