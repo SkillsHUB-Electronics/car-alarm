@@ -15,7 +15,7 @@
 <style>
   /* ---------- design tokens ---------- */
   :root {
-    --page:#ECEFF3; --surface:#FFFFFF; --line:#DCE2E9; --ink:#0F1B2A; --muted:#5E6B7C; --faint:#8794A5;
+    --page:#ECEFF3; --surface:#FFFFFF; --line:#DCE2E9; --ink:#0F1B2A; --muted:#5E6B7C; --faint:#6B788B;
     --side:#0D1621; --side-ink:#C9D3E0; --side-line:#1B2837; --side-active:#16253A;
     --cobalt:#2457F5; --cobalt-soft:#E4EBFE; --cobalt-ink:#1B3FB8;
     --safe:#16996A; --safe-soft:#DDF3E9; --safe-ink:#0F6B49;
@@ -27,7 +27,7 @@
     --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   }
   :root[data-theme=dark] {
-    --page:#080F18; --surface:#111C29; --line:#1F2D3F; --ink:#E8EEF5; --muted:#93A1B5; --faint:#6B7A8F;
+    --page:#080F18; --surface:#111C29; --line:#1F2D3F; --ink:#E8EEF5; --muted:#93A1B5; --faint:#8392A7;
     --side:#0A111B; --side-active:#14223A;
     --cobalt:#4E7BFF; --cobalt-soft:#1A2A52; --cobalt-ink:#9DB6FF;
     --safe:#2BB885; --safe-soft:#10372B; --safe-ink:#4FD3A0;
@@ -226,6 +226,15 @@
   .menu a .i:first-child { color:var(--muted); width:22px; height:22px; } .menu a .i:last-child { margin-left:auto; color:var(--faint); }
   .menu .line.btn-row { justify-content:space-between; border-bottom:0; } .menu .line.btn-row > span { display:flex; gap:14px; align-items:center; } .menu .line.btn-row .i { color:var(--muted); width:22px; height:22px; }
 
+  .stack { display:grid; gap:16px; align-content:start; }
+  .stack > .notice { margin-bottom:0; }
+  .hwrow { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+  .line > .l { flex-wrap:wrap; row-gap:4px; }
+  .banner .cta { display:none; gap:10px; }
+  button:focus-visible,.tabs button:focus-visible,.quick button:focus-visible,.steps button:focus-visible,summary:focus-visible,a:focus-visible { outline:2px solid var(--cobalt); outline-offset:2px; }
+  .card h2 { letter-spacing:-.005em; }
+  .btn:active:not(:disabled) { transform:translateY(1px); }
+
   .tabs { display:none; }
 
   /* ---------- responsive ---------- */
@@ -240,6 +249,9 @@
     .banner .facts b { font-size:16px; } .readout { font-size:76px; } .shock { grid-template-columns:1fr; } .gread { font-size:56px; }
     .ev { grid-template-columns:62px 1fr auto; } .ev .k { display:none; } .ev .tx { grid-column:1/-1; order:5; }
     .term { height:48vh; }
+    .banner .cta { display:grid; grid-template-columns:1fr 1fr; width:100%; } .banner .cta .btn { width:100%; } .banner .cta .btn:only-child { grid-column:1/-1; }
+    .hwrow { grid-template-columns:1fr 1fr; } .hwrow .btn { grid-column:1/-1; }
+    .actions .btn { flex:1 1 auto; } .actions .btn.ghost { flex:0 0 auto; }
     .tabs { display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:10; background:var(--surface); border-top:1px solid var(--line); padding:0 4px env(safe-area-inset-bottom); }
     .tabs button { position:relative; border:0; background:transparent; color:var(--faint); height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font:500 12.5px var(--font); cursor:pointer; }
     .tabs button .i { width:22px; height:22px; }
@@ -317,6 +329,7 @@
 <div class="page active" id="tab-dash">
   <section class="banner" id="banner">
     <div class="main"><div class="word" id="dStatus">Offline</div><div class="note" id="dStatusNote">Connect the Arduino to see live data</div></div>
+    <div class="cta"><button class="btn primary js-usb"><svg class="i"><use href="#i-plug"/></svg>Connect USB</button><button class="btn js-ble"><svg class="i"><use href="#i-bt"/></svg>Connect BLE</button></div>
     <div class="facts">
       <div><small>Shock</small><b id="fShock">&mdash;</b></div>
       <div><small>Driving pattern</small><b id="fPattern">&mdash;</b></div>
@@ -513,7 +526,39 @@
 
 <!-- ============ SETTINGS ============ -->
 <div class="page" id="tab-set">
-  <section class="card c6">
+  <div class="c6 stack">
+  <div class="notice info" id="setOffline"><svg class="i"><use href="#i-info"/></svg><span>Connect a device to read and change the alarm and hardware settings. Firmware and Cloud build work without one.</span></div>
+  <section class="card">
+    <div class="hd"><h2>Alarm</h2><span class="hint">Saved to EEPROM</span></div>
+    <div class="field"><label class="fl" for="sWarn">Warning &le;</label><div class="unitbox"><input type="number" id="sWarn" min="20" max="300"><em>cm</em></div></div>
+    <div class="field"><label class="fl" for="sDanger">Danger &le;</label><div class="unitbox"><input type="number" id="sDanger" min="10" max="290"><em>cm</em></div></div>
+    <div class="field"><label class="fl" for="sShock">Shock threshold</label><div class="unitbox"><input type="number" id="sShock" min="0.1" max="3" step="0.05"><em>g</em></div></div>
+    <div class="field"><label class="fl" for="sBrake">Brake threshold</label><div class="unitbox"><input type="number" id="sBrake" min="0.05" max="2" step="0.05"><em>g</em></div></div>
+    <div class="field"><label class="fl" for="sBrakeMs">Min. braking time</label><div class="unitbox"><input type="number" id="sBrakeMs" min="50" max="2000" step="10"><em>ms</em></div></div>
+    <div class="field"><label class="fl" for="sHold">Alarm hold</label><div class="unitbox"><input type="number" id="sHold" min="1" max="60"><em>s</em></div></div>
+    <div class="line strong"><span class="l">Buzzer</span><label class="sw"><input type="checkbox" id="sBuz" aria-label="Buzzer enabled"><span></span></label></div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="sSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="sRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="sReset">Restore defaults</button></div>
+    <div class="msg" id="sMsg">Rule: danger + 10 &le; warning. The distance calibration is not erased by a settings reset.</div>
+  </section>
+
+  <section class="card">
+    <div class="hd"><h2>Hardware</h2><span class="hint">Saved to EEPROM</span></div>
+    <div class="hwrow">
+      <div><label class="fl" for="hAddr">LCD I&sup2;C address</label><input type="text" id="hAddr" class="mono" value="0x27"></div>
+      <div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div>
+      <button class="btn" id="hScan">Scan I&sup2;C</button>
+    </div>
+    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
+    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
+    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
+    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
+    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
+  </section>
+  </div>
+  <div class="c6 stack">
+  <section class="card">
     <div class="hd"><h2>Firmware</h2><span class="chip tag" id="buildChip" hidden></span></div>
     <div id="buildOffline" class="hint" hidden>The local helper (arduino-cli) is not running, so this page cannot compile on this PC. Use <b>Cloud build</b> below (GitHub Actions compiles, this page flashes; it is available on every copy of this page), or run <code>console/server/start.bat</code> (or <code>node console/server/server.js</code>) and open <b>http://localhost:8765</b>. Everything else (monitoring, test, calibration, learning) works on this page over Web Serial.</div>
     <div id="buildUi">
@@ -527,7 +572,7 @@
     </div>
   </section>
 
-  <section class="card c6" id="cloudCard">
+  <section class="card" id="cloudCard">
     <div class="hd"><h2>Cloud build</h2><span class="chip tag" id="cbChip" hidden></span></div>
     <p class="hint">No local install: GitHub Actions compiles the firmware, then this page flashes it to the board over USB (desktop Chrome or Edge).</p>
     <div class="field"><label class="fl" for="cbRepo">Repository</label><input type="text" id="cbRepo" class="mono" value="SkillsHUB-Electronics/car-alarm" autocomplete="off" spellcheck="false"></div>
@@ -555,34 +600,7 @@
     <div class="log" id="cbLog" hidden></div>
   </section>
 
-  <section class="card c6">
-    <div class="hd"><h2>Alarm</h2><span class="hint">Saved to EEPROM</span></div>
-    <div class="field"><label class="fl" for="sWarn">Warning &le;</label><div class="unitbox"><input type="number" id="sWarn" min="20" max="300"><em>cm</em></div></div>
-    <div class="field"><label class="fl" for="sDanger">Danger &le;</label><div class="unitbox"><input type="number" id="sDanger" min="10" max="290"><em>cm</em></div></div>
-    <div class="field"><label class="fl" for="sShock">Shock threshold</label><div class="unitbox"><input type="number" id="sShock" min="0.1" max="3" step="0.05"><em>g</em></div></div>
-    <div class="field"><label class="fl" for="sBrake">Brake threshold</label><div class="unitbox"><input type="number" id="sBrake" min="0.05" max="2" step="0.05"><em>g</em></div></div>
-    <div class="field"><label class="fl" for="sBrakeMs">Min. braking time</label><div class="unitbox"><input type="number" id="sBrakeMs" min="50" max="2000" step="10"><em>ms</em></div></div>
-    <div class="field"><label class="fl" for="sHold">Alarm hold</label><div class="unitbox"><input type="number" id="sHold" min="1" max="60"><em>s</em></div></div>
-    <div class="line strong"><span class="l">Buzzer</span><label class="sw"><input type="checkbox" id="sBuz" aria-label="Buzzer enabled"><span></span></label></div>
-    <div class="actions" style="margin-top:12px"><button class="btn primary" id="sSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="sRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="sReset">Restore defaults</button></div>
-    <div class="msg" id="sMsg">Rule: danger + 10 &le; warning. The distance calibration is not erased by a settings reset.</div>
-  </section>
-
-  <section class="card c6">
-    <div class="hd"><h2>Hardware</h2><span class="hint">Saved to EEPROM</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
-      <div><label class="fl" for="hAddr">LCD I&sup2;C address</label><input type="text" id="hAddr" class="mono" value="0x27"></div>
-      <div><label class="fl" for="hScanSel">Scan result</label><select id="hScanSel"><option value="">Select</option></select></div>
-      <button class="btn" id="hScan">Scan I&sup2;C</button>
-    </div>
-    <div class="hint" id="hScanOut" style="margin:8px 0 6px">Common LCD addresses: 0x27 or 0x3F. MPU6050 = 0x68.</div>
-    <div class="line strong"><span class="l">LCD</span><label class="sw"><input type="checkbox" id="hLcd" aria-label="LCD enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">LCD backlight</span><label class="sw"><input type="checkbox" id="hBl" aria-label="LCD backlight on"><span></span></label></div>
-    <div class="line strong"><span class="l">Battery charger <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hChg" aria-label="Battery charger enabled"><span></span></label></div>
-    <div class="line strong"><span class="l">Current sensor (INA) <span class="chip warn tag">Needs POWER_ENABLED=1</span></span><label class="sw"><input type="checkbox" id="hIna" aria-label="INA enabled"><span></span></label></div>
-    <div class="actions" style="margin-top:12px"><button class="btn primary" id="hSave"><svg class="i"><use href="#i-check"/></svg>Save</button><button class="btn" id="hRead"><svg class="i"><use href="#i-download"/></svg>Read from device</button><button class="btn ghost" id="hReset">Restore defaults</button></div>
-    <div class="msg" id="hMsg">Address range 0x08&ndash;0x77. Address, LCD and backlight changes apply immediately.</div>
-  </section>
+  </div>
 </div>
 
 <!-- ============ GUIDE ============ -->
@@ -756,6 +774,7 @@ function setConn(on, text) {
   document.querySelectorAll('.js-usb').forEach((b) => { b.hidden = on || !('serial' in navigator); });
   document.querySelectorAll('.js-ble').forEach((b) => { b.hidden = on || !navigator.bluetooth; });
   document.querySelectorAll('.js-disc').forEach((b) => { b.hidden = !on; });
+  $('setOffline').hidden = on;
   if (on) eventLine('safe', 'Connected', bleChar ? 'BLE · ' + (bleDev && bleDev.name || 'device') : 'USB serial', 'System');
   refreshButtons(); renderStatus();
 }
