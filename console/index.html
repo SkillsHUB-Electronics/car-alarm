@@ -213,6 +213,7 @@
   .steps button .n { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:var(--track); color:var(--muted); font-weight:600; }
   .steps button.done .n { background:var(--safe); color:#fff; } .steps button.cur { background:var(--cobalt-soft); color:var(--ink); } .steps button.cur .n { background:var(--cobalt); color:#fff; }
   .cls { margin:12px 0; } .cls .t { display:flex; justify-content:space-between; font-weight:600; margin-bottom:5px; } .cls .t span:last-child { color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums; }
+  #tab-cal.active { align-items:stretch; } #calPtsCard { display:flex; flex-direction:column; } #calPtsCard .tblscroll { flex:1 1 0; min-height:220px; overflow:auto; margin-top:12px; } #calPtsCard thead th { position:sticky; top:0; background:var(--surface); z-index:1; }
   #tab-learn.active { align-items:stretch; } #lrnLeft { grid-template-rows:auto 1fr; }
   .conf td,.conf th { padding:4px 6px; font-size:12.5px; text-align:center; } .conf td.hit { font-weight:700; color:var(--safe-ink); } .conf td.miss { color:var(--danger-ink); font-weight:700; }
 
@@ -451,39 +452,32 @@
 
 <!-- ============ CALIBRATION ============ -->
 <div class="page" id="tab-cal">
-  <section class="card c6">
+  <section class="card c6" id="calPtsCard">
     <div class="hd"><h2>Measurement points</h2></div>
     <p class="hint">Place a flat obstacle at a known distance (measure with a ruler or tape from the sensor face), enter the true distance and press Measure. The device averages 10 raw readings. Take at least 4 spread-out points (e.g. 20, 50, 100, 200 cm).</p>
     <label class="fl" for="calTrue">True distance</label>
     <div class="split"><div class="unitbox"><input type="number" id="calTrue" step="0.1" min="2" max="400" value="50"><em>cm</em></div><button class="btn primary" id="calMeasure"><svg class="i"><use href="#i-target"/></svg>Measure</button></div>
-    <table id="calTable" style="margin-top:12px"><thead><tr><th>#</th><th>True</th><th>Raw</th><th>Err. before</th><th class="num">Err. after</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="tblscroll"><table id="calTable"><thead><tr><th>#</th><th>True</th><th>Raw</th><th>Err. before</th><th class="num">Err. after</th><th></th></tr></thead><tbody></tbody></table></div>
     <button class="btn ghost sm" id="calClear" style="margin-top:6px"><svg class="i"><use href="#i-trash"/></svg>Clear points</button>
   </section>
+  <section class="card c6">
+    <div class="hd"><h2>Result</h2></div>
+    <label class="fl" for="calMode">Method</label>
+    <select id="calMode"><option value="reg">Linear regression (gain + offset)</option><option value="off">Offset only (mean difference)</option></select>
+    <canvas id="calChart" style="width:100%;height:190px;display:block;margin-top:14px"></canvas>
+    <div class="chartfoot" style="justify-content:center"><span><span class="leg" style="color:var(--cobalt)">Fitted</span><span class="leg" style="color:var(--safe)">Ideal</span></span><span>Raw (y) vs true (x), cm</span></div>
+    <div style="margin-top:6px">
+      <div class="line"><span class="l">Gain</span><span class="r" id="calGain">&mdash;</span></div>
+      <div class="line"><span class="l">Offset (cm)</span><span class="r" id="calOff">&mdash;</span></div>
+      <div class="line"><span class="l">RMSE before &rarr; after</span><span class="r" id="calRmse">&mdash;</span></div>
+      <div class="line"><span class="l">Max error after</span><span class="r" id="calMax">&mdash;</span></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn primary" id="calApply"><svg class="i"><use href="#i-upload"/></svg>Apply to device (EEPROM)</button><button class="btn" id="calReset"><svg class="i"><use href="#i-refresh"/></svg>Reset</button></div>
+    <div class="actions" style="margin-top:12px;justify-content:flex-end"><span class="hint">Stored on device: <span id="calStored">&mdash;</span></span><button class="btn sm" id="calRefresh">Read</button></div>
+    <div class="msg" id="calMsg"></div>
+  </section>
 
-  <div class="c6" style="display:grid;gap:16px">
-    <section class="card">
-      <div class="hd"><h2>Accelerometer</h2><span class="chip" id="calZ">Z &mdash;</span></div>
-      <p class="hint" style="margin:0"><b style="color:var(--ink)">MPU6050 calibrates itself at power-up.</b> Keep the unit <b>stationary and level</b>, then reset the UNO. Check X/Y/Z on the Dashboard (Z &asymp; 1.00 g, X and Y &asymp; 0). The forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in Settings.</p>
-    </section>
-    <section class="card">
-      <div class="hd"><h2>Result</h2></div>
-      <label class="fl" for="calMode">Method</label>
-      <select id="calMode"><option value="reg">Linear regression (gain + offset)</option><option value="off">Offset only (mean difference)</option></select>
-      <canvas id="calChart" style="width:100%;height:190px;display:block;margin-top:14px"></canvas>
-      <div class="chartfoot" style="justify-content:center"><span><span class="leg" style="color:var(--cobalt)">Fitted</span><span class="leg" style="color:var(--safe)">Ideal</span></span><span>Raw (y) vs true (x), cm</span></div>
-      <div style="margin-top:6px">
-        <div class="line"><span class="l">Gain</span><span class="r" id="calGain">&mdash;</span></div>
-        <div class="line"><span class="l">Offset (cm)</span><span class="r" id="calOff">&mdash;</span></div>
-        <div class="line"><span class="l">RMSE before &rarr; after</span><span class="r" id="calRmse">&mdash;</span></div>
-        <div class="line"><span class="l">Max error after</span><span class="r" id="calMax">&mdash;</span></div>
-      </div>
-      <div class="actions" style="margin-top:12px"><button class="btn primary" id="calApply"><svg class="i"><use href="#i-upload"/></svg>Apply to device (EEPROM)</button><button class="btn" id="calReset"><svg class="i"><use href="#i-refresh"/></svg>Reset</button></div>
-      <div class="actions" style="margin-top:12px;justify-content:flex-end"><span class="hint">Stored on device: <span id="calStored">&mdash;</span></span><button class="btn sm" id="calRefresh">Read</button></div>
-      <div class="msg" id="calMsg"></div>
-    </section>
-  </div>
-
-  <section class="card">
+  <section class="card c6">
     <div class="hd"><h2>INA219 calibration (voltage &amp; current)</h2></div>
     <p class="hint">Measure the same point with a multimeter, enter the real values and press Calibrate. The device keeps per-mille gains and a current offset in EEPROM (separate block). Needs a firmware built with <code>POWER_ENABLED=1</code> and INA enabled in Settings. For the zero offset, disconnect the load first.</p>
     <div class="line"><span class="l">Reading now</span><span class="r"><span id="inaNow" class="hint">&mdash;</span><button class="btn sm" id="inaRead">Read</button></span></div>
@@ -494,6 +488,10 @@
     <div class="actions" style="margin-top:14px"><button class="btn primary" id="inaCalV">Calibrate voltage</button><button class="btn primary" id="inaCalI">Calibrate current</button><button class="btn" id="inaZero">Zero current offset (no load)</button><button class="btn" id="inaReset">Reset</button></div>
     <div class="line" style="margin-top:8px"><span class="l">Stored on device</span><span class="r hint" id="inaStored">&mdash;</span></div>
     <div class="msg" id="inaMsg"></div>
+  </section>
+  <section class="card c6" id="calAccCard">
+    <div class="hd"><h2>Accelerometer</h2><span class="chip" id="calZ">Z &mdash;</span></div>
+    <p class="hint" style="margin:0"><b style="color:var(--ink)">MPU6050 calibrates itself at power-up.</b> Keep the unit <b>stationary and level</b>, then reset the UNO. Check X/Y/Z on the Dashboard (Z &asymp; 1.00 g, X and Y &asymp; 0). The forward direction is set with <code>FORWARD_AXIS</code>/<code>FORWARD_SIGN</code> in <code>config.h</code>; shock/brake thresholds are in Settings.</p>
   </section>
 </div>
 
